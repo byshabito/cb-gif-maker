@@ -289,6 +289,7 @@ export function initializeApp(root: HTMLDivElement): void {
       state.metadata !== null &&
       state.scaleFilter !== null;
 
+    convertButton.textContent = state.isBusy ? "Converting..." : "Convert to GIF";
     convertButton.disabled = !canConvert;
     fileInput.disabled = state.isBusy;
   };
