@@ -1,0 +1,26 @@
+{
+  "name": "cb-gif-tool",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "npm run copy:ffmpeg-core",
+    "dev": "npm run copy:ffmpeg-core && vite",
+    "build": "npm run copy:ffmpeg-core && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "copy:ffmpeg-core": "node scripts/copy-ffmpeg-core.mjs"
+  },
+  "dependencies": {
+    "@ffmpeg/core": "0.12.10",
+    "@ffmpeg/ffmpeg": "0.12.15",
+    "@ffmpeg/util": "0.12.2"
+  },
+  "devDependencies": {
+    "jsdom": "29.0.1",
+    "typescript": "6.0.2",
+    "vite": "8.0.5",
+    "vitest": "4.1.2"
+  }
+}
