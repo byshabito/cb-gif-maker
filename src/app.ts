@@ -99,7 +99,6 @@ export function initializeApp(root: HTMLDivElement): void {
       <section class="panel controls-panel">
         <article class="input-column">
           <label class="file-picker">
-            <span>Choose a video</span>
             <input id="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
           </label>
           <div id="input-preview-wrap" class="input-preview-wrap" hidden>
@@ -112,7 +111,7 @@ export function initializeApp(root: HTMLDivElement): void {
               preload="metadata"
             ></video>
           </div>
-          <p id="input-summary" class="input-summary">- / - / -</p>
+          <p id="input-summary" class="input-summary" hidden>- / - / -</p>
           <p id="error-message" class="message error" hidden></p>
         </article>
         <div class="action-column">
@@ -125,11 +124,9 @@ export function initializeApp(root: HTMLDivElement): void {
             </div>
           </div>
           <div id="status-result" class="status-result" hidden>
+            <a id="download-link" class="primary download-link" download="" hidden>Download GIF</a>
             <img id="result-preview" class="result-preview" alt="Generated GIF preview" hidden />
-            <div class="result-toolbar">
-              <span id="result-meta" class="caption" hidden></span>
-              <a id="download-link" class="primary download-link" download="" hidden>Download GIF</a>
-            </div>
+            <p id="result-meta" class="input-summary" hidden></p>
           </div>
         </article>
       </section>
@@ -226,6 +223,7 @@ export function initializeApp(root: HTMLDivElement): void {
       ? formatDuration(state.metadata.duration)
       : "-";
     inputSummary.textContent = `${inputSize} / ${inputDimensions} / ${inputDuration}`;
+    inputSummary.hidden = state.file === null;
     inputPreviewWrap.hidden = state.inputPreviewUrl === null;
     syncMediaSource(inputPreview, state.inputPreviewUrl);
 
