@@ -24,7 +24,9 @@ export type ConversionResult = {
   blob: Blob;
   objectUrl: string;
   bytes: number;
-  elapsedMs: number;
+  width: number;
+  height: number;
+  duration?: number;
 };
 
 export type FfmpegAssetPaths = {

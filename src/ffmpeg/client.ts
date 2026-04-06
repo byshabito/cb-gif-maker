@@ -104,15 +104,22 @@ export class BrowserGifConverter {
       blobBytes.set(bytes);
       const blob = new Blob([blobBytes], { type: "image/gif" });
       const objectUrl = URL.createObjectURL(blob);
+      const imageBitmap = await createImageBitmap(blob);
 
       this.handlers.onProgress?.(1);
 
-      return {
-        blob,
-        objectUrl,
-        bytes: blob.size,
-        elapsedMs: performance.now() - startTime
-      };
+      try {
+        return {
+          blob,
+          objectUrl,
+          bytes: blob.size,
+          width: imageBitmap.width,
+          height: imageBitmap.height,
+          duration: job.metadata.duration
+        };
+      } finally {
+        imageBitmap.close();
+      }
     } finally {
       await Promise.allSettled(
         [files.input, files.clean, files.reduced, files.palette, files.output]

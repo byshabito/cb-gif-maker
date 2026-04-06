@@ -181,14 +181,16 @@ export function initializeApp(root: HTMLDivElement): void {
   };
 
   const render = () => {
-    const dimensions = state.metadata
+    const inputSize = state.file
+      ? formatBytes(state.file.size)
+      : "-";
+    const inputDimensions = state.metadata
       ? `${state.metadata.width} × ${state.metadata.height}`
       : "-";
-    const duration = state.metadata
+    const inputDuration = state.metadata
       ? formatDuration(state.metadata.duration)
       : "-";
-    const scale = state.scaleFilter ?? "-";
-    inputSummary.textContent = `${dimensions} / ${duration} / ${scale}`;
+    inputSummary.textContent = `${inputSize} / ${inputDimensions} / ${inputDuration}`;
 
     warningMessage.hidden = !state.warningMessage;
     warningMessage.textContent = state.warningMessage;
@@ -214,9 +216,10 @@ export function initializeApp(root: HTMLDivElement): void {
 
     if (state.result) {
       resultPreview.src = state.result.objectUrl;
-      resultMeta.textContent = `${formatBytes(state.result.bytes)} • ${(
-        state.result.elapsedMs / 1000
-      ).toFixed(2)} s`;
+      resultMeta.textContent =
+        `${formatBytes(state.result.bytes)} / ` +
+        `${state.result.width} × ${state.result.height} / ` +
+        `${formatDuration(state.result.duration)}`;
       downloadLink.href = state.result.objectUrl;
       downloadLink.download = state.file ? getOutputName(state.file.name) : "output.gif";
     } else {
