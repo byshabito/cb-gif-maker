@@ -198,11 +198,39 @@ export function initializeApp(root: HTMLDivElement): void {
     inputPreview.pause();
     inputPreview.removeAttribute("src");
     inputPreview.load();
+    delete inputPreview.dataset.objectUrl;
 
     if (state.inputPreviewUrl) {
       URL.revokeObjectURL(state.inputPreviewUrl);
       state.inputPreviewUrl = null;
     }
+  };
+
+  const syncMediaSource = (
+    element: HTMLVideoElement | HTMLImageElement,
+    objectUrl: string | null
+  ) => {
+    const currentObjectUrl = element.dataset.objectUrl ?? null;
+
+    if (currentObjectUrl === objectUrl) {
+      return;
+    }
+
+    if (!objectUrl) {
+      if (element instanceof HTMLVideoElement) {
+        element.pause();
+        element.removeAttribute("src");
+        element.load();
+      } else {
+        element.removeAttribute("src");
+      }
+
+      delete element.dataset.objectUrl;
+      return;
+    }
+
+    element.src = objectUrl;
+    element.dataset.objectUrl = objectUrl;
   };
 
   const render = () => {
@@ -217,10 +245,7 @@ export function initializeApp(root: HTMLDivElement): void {
       : "-";
     inputSummary.textContent = `${inputSize} / ${inputDimensions} / ${inputDuration}`;
     inputPreviewWrap.hidden = state.inputPreviewUrl === null;
-
-    if (state.inputPreviewUrl) {
-      inputPreview.src = state.inputPreviewUrl;
-    }
+    syncMediaSource(inputPreview, state.inputPreviewUrl);
 
     warningMessage.hidden = !state.warningMessage;
     warningMessage.textContent = state.warningMessage;
@@ -245,7 +270,7 @@ export function initializeApp(root: HTMLDivElement): void {
         : `${Math.round(state.progress * 100)}%`;
 
     if (state.result) {
-      resultPreview.src = state.result.objectUrl;
+      syncMediaSource(resultPreview, state.result.objectUrl);
       resultMeta.textContent =
         `${formatBytes(state.result.bytes)} / ` +
         `${state.result.width} × ${state.result.height} / ` +
@@ -253,7 +278,7 @@ export function initializeApp(root: HTMLDivElement): void {
       downloadLink.href = state.result.objectUrl;
       downloadLink.download = state.file ? getOutputName(state.file.name) : "output.gif";
     } else {
-      resultPreview.removeAttribute("src");
+      syncMediaSource(resultPreview, null);
       resultMeta.textContent = "";
       downloadLink.removeAttribute("href");
       downloadLink.download = "";
