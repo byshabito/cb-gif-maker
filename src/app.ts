@@ -83,6 +83,7 @@ function getFfmpegPaths(): FfmpegAssetPaths {
 export function initializeApp(root: HTMLDivElement): void {
   const converter = new BrowserGifConverter();
   const state = initialState();
+  let activeOperationId = 0;
 
   root.innerHTML = `
     <main class="shell">
@@ -118,6 +119,7 @@ export function initializeApp(root: HTMLDivElement): void {
         </article>
         <div class="action-column">
           <button id="convert-button" class="primary convert-button" type="button" disabled>Convert to GIF</button>
+          <button id="cancel-button" class="ghost-button" type="button" hidden>Cancel</button>
         </div>
         <article class="output-column">
           <div id="progress-wrap" class="progress-wrap" hidden>
@@ -141,6 +143,7 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const fileInput = root.querySelector<HTMLInputElement>("#file-input");
   const convertButton = root.querySelector<HTMLButtonElement>("#convert-button");
+  const cancelButton = root.querySelector<HTMLButtonElement>("#cancel-button");
   const inputSkeleton = root.querySelector<HTMLElement>("#input-skeleton");
   const inputPreviewWrap = root.querySelector<HTMLElement>("#input-preview-wrap");
   const inputPreview = root.querySelector<HTMLVideoElement>("#input-preview");
@@ -159,6 +162,7 @@ export function initializeApp(root: HTMLDivElement): void {
   if (
     !fileInput ||
     !convertButton ||
+    !cancelButton ||
     !inputSkeleton ||
     !inputPreviewWrap ||
     !inputPreview ||
@@ -293,6 +297,7 @@ export function initializeApp(root: HTMLDivElement): void {
 
     convertButton.textContent = state.isBusy ? "Converting..." : "Convert to GIF";
     convertButton.disabled = !canConvert;
+    cancelButton.hidden = !state.isBusy;
     fileInput.disabled = state.isBusy;
   };
 
@@ -301,12 +306,16 @@ export function initializeApp(root: HTMLDivElement): void {
       console.log("[ffmpeg]", line);
     },
     onProgress: (value) => {
+      if (!state.isBusy) {
+        return;
+      }
+
       state.progress = value;
       render();
     }
   });
 
-  const loadEngine = async (forceReload = false) => {
+  const loadEngine = async (operationId: number): Promise<boolean> => {
     state.conversionState = "loading-engine";
     state.isBusy = true;
     state.errorMessage = "";
@@ -314,20 +323,26 @@ export function initializeApp(root: HTMLDivElement): void {
     render();
 
     try {
-      if (forceReload) {
-        await converter.reload(getFfmpegPaths());
-      } else {
-        await converter.ensureLoaded(getFfmpegPaths());
+      await converter.ensureLoaded(getFfmpegPaths());
+
+      if (operationId !== activeOperationId) {
+        return false;
       }
 
       state.isBusy = false;
       state.conversionState = state.metadata ? "ready" : "idle";
       render();
+      return true;
     } catch (error) {
+      if (operationId !== activeOperationId) {
+        return false;
+      }
+
       state.isBusy = false;
       state.conversionState = "error";
       state.errorMessage = `Failed to load ffmpeg engine: ${sanitizeError(error)}`;
       render();
+      return false;
     }
   };
 
@@ -374,6 +389,8 @@ export function initializeApp(root: HTMLDivElement): void {
       return;
     }
 
+    const operationId = ++activeOperationId;
+
     const job: ConversionJob = {
       file: state.file,
       metadata: state.metadata,
@@ -381,9 +398,10 @@ export function initializeApp(root: HTMLDivElement): void {
       outputName: getOutputName(state.file.name)
     };
 
-    await loadEngine(false);
+    clearResult();
+    const loaded = await loadEngine(operationId);
 
-    if (state.conversionState === "error") {
+    if (!loaded || operationId !== activeOperationId || state.conversionState === "error") {
       return;
     }
 
@@ -395,19 +413,47 @@ export function initializeApp(root: HTMLDivElement): void {
 
     try {
       const result = await converter.convert(job);
-      clearResult();
+
+      if (operationId !== activeOperationId) {
+        URL.revokeObjectURL(result.objectUrl);
+        return;
+      }
+
       state.result = result;
       state.conversionState = "done";
       render();
     } catch (error) {
+      if (operationId !== activeOperationId) {
+        return;
+      }
+
       state.conversionState = "error";
       state.errorMessage = `Conversion failed: ${sanitizeError(error)}`;
       render();
     } finally {
+      if (operationId !== activeOperationId) {
+        return;
+      }
+
       state.isBusy = false;
       state.progress = state.conversionState === "done" ? 1 : null;
       render();
     }
+  };
+
+  const cancelConversion = () => {
+    if (!state.isBusy) {
+      return;
+    }
+
+    activeOperationId += 1;
+    converter.terminate();
+    clearResult();
+    state.conversionState = state.metadata ? "ready" : "idle";
+    state.errorMessage = "";
+    state.isBusy = false;
+    state.progress = null;
+    render();
   };
 
   fileInput.addEventListener("change", async () => {
@@ -426,6 +472,10 @@ export function initializeApp(root: HTMLDivElement): void {
 
   convertButton.addEventListener("click", async () => {
     await runConversion();
+  });
+
+  cancelButton.addEventListener("click", () => {
+    cancelConversion();
   });
 
   window.addEventListener("beforeunload", () => {
