@@ -1,4 +1,4 @@
-# CbGifTool
+# CB GIF Maker
 
 Browser-only GIF conversion for GitHub Pages, powered by `ffmpeg.wasm`.
 
@@ -28,8 +28,6 @@ At runtime, those same-origin assets are wrapped into blob URLs before `ffmpeg.l
 npm run build
 npm run preview
 ```
-
-Production builds use the GitHub Pages base path `/CbGifTool/`.
 
 ## GitHub Pages
 
