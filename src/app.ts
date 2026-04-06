@@ -101,6 +101,9 @@ export function initializeApp(root: HTMLDivElement): void {
           <label class="file-picker">
             <input id="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
           </label>
+          <div id="input-skeleton" class="preview-skeleton">
+            <div class="skeleton-frame"></div>
+          </div>
           <div id="input-preview-wrap" class="input-preview-wrap" hidden>
             <video
               id="input-preview"
@@ -123,6 +126,10 @@ export function initializeApp(root: HTMLDivElement): void {
               <div id="progress-bar" class="progress-bar"></div>
             </div>
           </div>
+          <div id="output-skeleton" class="status-result">
+            <div class="skeleton-button"></div>
+            <div class="skeleton-frame"></div>
+          </div>
           <div id="status-result" class="status-result" hidden>
             <a id="download-link" class="primary download-link" download="" hidden>Download GIF</a>
             <img id="result-preview" class="result-preview" alt="Generated GIF preview" hidden />
@@ -135,10 +142,12 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const fileInput = root.querySelector<HTMLInputElement>("#file-input");
   const convertButton = root.querySelector<HTMLButtonElement>("#convert-button");
+  const inputSkeleton = root.querySelector<HTMLElement>("#input-skeleton");
   const inputPreviewWrap = root.querySelector<HTMLElement>("#input-preview-wrap");
   const inputPreview = root.querySelector<HTMLVideoElement>("#input-preview");
   const inputSummary = root.querySelector<HTMLElement>("#input-summary");
   const errorMessage = root.querySelector<HTMLElement>("#error-message");
+  const outputSkeleton = root.querySelector<HTMLElement>("#output-skeleton");
   const progressWrap = root.querySelector<HTMLElement>("#progress-wrap");
   const progressBar = root.querySelector<HTMLElement>("#progress-bar");
   const statusResult = root.querySelector<HTMLElement>("#status-result");
@@ -150,10 +159,12 @@ export function initializeApp(root: HTMLDivElement): void {
   if (
     !fileInput ||
     !convertButton ||
+    !inputSkeleton ||
     !inputPreviewWrap ||
     !inputPreview ||
     !inputSummary ||
     !errorMessage ||
+    !outputSkeleton ||
     !progressWrap ||
     !progressBar ||
     !statusResult ||
@@ -222,9 +233,11 @@ export function initializeApp(root: HTMLDivElement): void {
     const inputDuration = state.metadata
       ? formatDuration(state.metadata.duration)
       : "-";
+    const showInputPreview = state.inputPreviewUrl !== null;
     inputSummary.textContent = `${inputSize} / ${inputDimensions} / ${inputDuration}`;
     inputSummary.hidden = state.file === null;
-    inputPreviewWrap.hidden = state.inputPreviewUrl === null;
+    inputSkeleton.hidden = showInputPreview;
+    inputPreviewWrap.hidden = !showInputPreview;
     syncMediaSource(inputPreview, state.inputPreviewUrl);
 
     errorMessage.hidden = !state.errorMessage;
@@ -237,12 +250,14 @@ export function initializeApp(root: HTMLDivElement): void {
         state.progress !== null ||
         state.conversionState === "loading-engine" ||
         state.conversionState === "converting");
+    const showOutputSkeleton = !showResult && !showProgress;
 
     outputColumn.dataset.mode = showResult
       ? "result"
       : showProgress
         ? "progress"
         : "idle";
+    outputSkeleton.hidden = !showOutputSkeleton;
     progressWrap.hidden = !showProgress;
     statusResult.hidden = !showResult;
     progressBar.style.width = `${Math.round((state.progress ?? 0) * 100)}%`;
