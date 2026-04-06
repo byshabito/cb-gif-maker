@@ -1,4 +1,5 @@
-import type { ConversionFiles, ScaleFilter } from "../types";
+import { getTrimDuration } from "../video/trim";
+import type { ConversionFiles, ScaleFilter, TrimRange } from "../types";
 
 export const TEMP_FILES: Omit<ConversionFiles, "input"> = {
   clean: "output_clean.mp4",
@@ -31,15 +32,28 @@ export function getConversionFiles(filename: string): ConversionFiles {
   };
 }
 
+function serializeCommandTime(seconds: number): string {
+  return Math.max(seconds, 0).toFixed(3);
+}
+
 export function buildGifPipeline(
   inputName: string,
   scaleFilter: ScaleFilter,
+  trimRange: TrimRange | null = null,
   files: Omit<ConversionFiles, "input"> = TEMP_FILES
 ): string[][] {
   return [
     [
       "-i",
       inputName,
+      ...(trimRange
+        ? [
+            "-ss",
+            serializeCommandTime(trimRange.startTime),
+            "-t",
+            serializeCommandTime(getTrimDuration(trimRange))
+          ]
+        : []),
       "-vf",
       "hqdn3d=2.0:1.5:3.0:3.0",
       files.clean
@@ -69,4 +83,3 @@ export function buildGifPipeline(
     ]
   ];
 }
-

@@ -4,6 +4,7 @@ import {
   buildGifPipeline,
   getConversionFiles
 } from "../conversion/pipeline";
+import { getTrimDuration } from "../video/trim";
 import type {
   ConversionJob,
   ConversionResult,
@@ -81,13 +82,12 @@ export class BrowserGifConverter {
 
   async convert(job: ConversionJob): Promise<ConversionResult> {
     const files = getConversionFiles(job.file.name);
-    const startTime = performance.now();
 
     try {
       this.handlers.onProgress?.(0);
       await this.ffmpeg.writeFile(files.input, await fetchFile(job.file));
 
-      for (const command of buildGifPipeline(files.input, job.scaleFilter)) {
+      for (const command of buildGifPipeline(files.input, job.scaleFilter, job.trimRange)) {
         const exitCode = await this.ffmpeg.exec(command);
 
         if (exitCode !== 0) {
@@ -115,7 +115,9 @@ export class BrowserGifConverter {
           bytes: blob.size,
           width: imageBitmap.width,
           height: imageBitmap.height,
-          duration: job.metadata.duration
+          duration: job.trimRange
+            ? getTrimDuration(job.trimRange)
+            : job.metadata.duration
         };
       } finally {
         imageBitmap.close();

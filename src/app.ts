@@ -4,21 +4,31 @@ import {
   getOutputName
 } from "./conversion/pipeline";
 import { readVideoMetadata } from "./video/metadata";
+import {
+  clampTrimEnd,
+  clampTrimStart,
+  getTrimDuration
+} from "./video/trim";
 import type {
   ConversionJob,
   ConversionResult,
   ConversionState,
   FfmpegAssetPaths,
   InputMetadata,
-  ScaleFilter
+  ScaleFilter,
+  TrimRange
 } from "./types";
 
 const ACCEPTED_VIDEO_TYPES = ".mp4,video/mp4";
+const TRIM_STEP = 0.1;
+const MIN_TRIM_SPAN = 0.1;
+
 type AppState = {
   conversionState: ConversionState;
   file: File | null;
   metadata: InputMetadata | null;
   scaleFilter: ScaleFilter | null;
+  trimRange: TrimRange | null;
   result: ConversionResult | null;
   inputPreviewUrl: string | null;
   errorMessage: string;
@@ -31,6 +41,7 @@ const initialState = (): AppState => ({
   file: null,
   metadata: null,
   scaleFilter: null,
+  trimRange: null,
   result: null,
   inputPreviewUrl: null,
   errorMessage: "",
@@ -63,6 +74,20 @@ function formatDuration(duration?: number): string {
   return `${duration.toFixed(2)} s`;
 }
 
+function formatTrimTimestamp(seconds: number): string {
+  const safeValue = Math.max(seconds, 0);
+  const hours = Math.floor(safeValue / 3600);
+  const minutes = Math.floor((safeValue % 3600) / 60);
+  const remainingSeconds = safeValue - hours * 3600 - minutes * 60;
+  const secondsText = remainingSeconds.toFixed(1).padStart(4, "0");
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${secondsText}`;
+  }
+
+  return `${minutes}:${secondsText}`;
+}
+
 function sanitizeError(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected error.";
 }
@@ -78,6 +103,12 @@ function getFfmpegPaths(): FfmpegAssetPaths {
     coreURL: `${base}ffmpeg/ffmpeg-core.js`,
     wasmURL: `${base}ffmpeg/ffmpeg-core.wasm`
   };
+}
+
+function hasKnownDuration(
+  metadata: InputMetadata | null
+): metadata is InputMetadata & { duration: number } {
+  return typeof metadata?.duration === "number" && metadata.duration > 0;
 }
 
 export function initializeApp(root: HTMLDivElement): void {
@@ -115,6 +146,44 @@ export function initializeApp(root: HTMLDivElement): void {
             ></video>
           </div>
           <p id="input-summary" class="input-summary" hidden>- / - / -</p>
+          <section id="trim-controls" class="trim-controls" hidden>
+            <div class="trim-header">
+              <p class="trim-title">Trim clip</p>
+              <p id="trim-duration" class="trim-duration">0:00.0 selected</p>
+            </div>
+            <div class="trim-slider-stack">
+              <div class="trim-slider-track"></div>
+              <div id="trim-selected-range" class="trim-selected-range"></div>
+              <input
+                id="trim-start"
+                class="trim-slider trim-slider-start"
+                type="range"
+                min="0"
+                max="0"
+                step="${TRIM_STEP}"
+                value="0"
+              />
+              <input
+                id="trim-end"
+                class="trim-slider trim-slider-end"
+                type="range"
+                min="0"
+                max="0"
+                step="${TRIM_STEP}"
+                value="0"
+              />
+            </div>
+            <div class="trim-readouts">
+              <p class="trim-chip">
+                <span class="trim-chip-label">Start</span>
+                <strong id="trim-start-readout">0:00.0</strong>
+              </p>
+              <p class="trim-chip">
+                <span class="trim-chip-label">End</span>
+                <strong id="trim-end-readout">0:00.0</strong>
+              </p>
+            </div>
+          </section>
           <p id="error-message" class="message error" hidden></p>
         </article>
         <div class="action-column">
@@ -149,6 +218,13 @@ export function initializeApp(root: HTMLDivElement): void {
   const inputPreview = root.querySelector<HTMLVideoElement>("#input-preview");
   const fileName = root.querySelector<HTMLElement>("#file-name");
   const inputSummary = root.querySelector<HTMLElement>("#input-summary");
+  const trimControls = root.querySelector<HTMLElement>("#trim-controls");
+  const trimSelectedRange = root.querySelector<HTMLElement>("#trim-selected-range");
+  const trimDuration = root.querySelector<HTMLElement>("#trim-duration");
+  const trimStartInput = root.querySelector<HTMLInputElement>("#trim-start");
+  const trimEndInput = root.querySelector<HTMLInputElement>("#trim-end");
+  const trimStartReadout = root.querySelector<HTMLElement>("#trim-start-readout");
+  const trimEndReadout = root.querySelector<HTMLElement>("#trim-end-readout");
   const errorMessage = root.querySelector<HTMLElement>("#error-message");
   const outputSkeleton = root.querySelector<HTMLElement>("#output-skeleton");
   const progressWrap = root.querySelector<HTMLElement>("#progress-wrap");
@@ -168,6 +244,13 @@ export function initializeApp(root: HTMLDivElement): void {
     !inputPreview ||
     !fileName ||
     !inputSummary ||
+    !trimControls ||
+    !trimSelectedRange ||
+    !trimDuration ||
+    !trimStartInput ||
+    !trimEndInput ||
+    !trimStartReadout ||
+    !trimEndReadout ||
     !errorMessage ||
     !outputSkeleton ||
     !progressWrap ||
@@ -245,6 +328,57 @@ export function initializeApp(root: HTMLDivElement): void {
     inputSkeleton.hidden = showInputPreview;
     inputPreviewWrap.hidden = !showInputPreview;
     syncMediaSource(inputPreview, state.inputPreviewUrl);
+
+    const trimMetadata = hasKnownDuration(state.metadata)
+      ? state.metadata
+      : null;
+    const trimRange = state.trimRange;
+    const trimEnabled =
+      trimMetadata !== null &&
+      trimRange !== null &&
+      trimMetadata.duration >= MIN_TRIM_SPAN;
+    trimControls.hidden = !trimEnabled;
+
+    if (trimEnabled) {
+      const duration = trimMetadata.duration;
+      const selectedDuration = getTrimDuration(trimRange);
+      const startPercent =
+        duration > 0
+          ? (trimRange.startTime / duration) * 100
+          : 0;
+      const endPercent =
+        duration > 0
+          ? (trimRange.endTime / duration) * 100
+          : 100;
+
+      trimStartInput.min = "0";
+      trimStartInput.max = String(duration);
+      trimStartInput.step = String(TRIM_STEP);
+      trimStartInput.value = String(trimRange.startTime);
+      trimStartInput.disabled = state.isBusy;
+
+      trimEndInput.min = "0";
+      trimEndInput.max = String(duration);
+      trimEndInput.step = String(TRIM_STEP);
+      trimEndInput.value = String(trimRange.endTime);
+      trimEndInput.disabled = state.isBusy;
+
+      trimSelectedRange.style.left = `${startPercent}%`;
+      trimSelectedRange.style.width = `${Math.max(endPercent - startPercent, 0)}%`;
+      trimDuration.textContent = `${formatTrimTimestamp(selectedDuration)} selected`;
+      trimStartReadout.textContent = formatTrimTimestamp(trimRange.startTime);
+      trimEndReadout.textContent = formatTrimTimestamp(trimRange.endTime);
+    } else {
+      trimStartInput.value = "0";
+      trimEndInput.value = "0";
+      trimStartInput.disabled = true;
+      trimEndInput.disabled = true;
+      trimSelectedRange.style.left = "0%";
+      trimSelectedRange.style.width = "100%";
+      trimDuration.textContent = "0:00.0 selected";
+      trimStartReadout.textContent = "0:00.0";
+      trimEndReadout.textContent = "0:00.0";
+    }
 
     errorMessage.hidden = !state.errorMessage;
     errorMessage.textContent = state.errorMessage;
@@ -355,6 +489,7 @@ export function initializeApp(root: HTMLDivElement): void {
       state.file = null;
       state.metadata = null;
       state.scaleFilter = null;
+      state.trimRange = null;
       state.conversionState = "error";
       state.errorMessage = "Unsupported file type. Use an MP4 video.";
       render();
@@ -365,6 +500,7 @@ export function initializeApp(root: HTMLDivElement): void {
     state.inputPreviewUrl = URL.createObjectURL(file);
     state.metadata = null;
     state.scaleFilter = null;
+    state.trimRange = null;
     state.errorMessage = "";
     state.conversionState = "probing";
     render();
@@ -373,11 +509,18 @@ export function initializeApp(root: HTMLDivElement): void {
       const metadata = await readVideoMetadata(file);
       state.metadata = metadata;
       state.scaleFilter = computeScaleFilter(metadata.width, metadata.height);
+      state.trimRange = hasKnownDuration(metadata)
+        ? {
+            startTime: 0,
+            endTime: metadata.duration
+          }
+        : null;
       state.conversionState = "ready";
       render();
     } catch (error) {
       state.metadata = null;
       state.scaleFilter = null;
+      state.trimRange = null;
       state.conversionState = "error";
       state.errorMessage = sanitizeError(error);
       render();
@@ -395,6 +538,7 @@ export function initializeApp(root: HTMLDivElement): void {
       file: state.file,
       metadata: state.metadata,
       scaleFilter: state.scaleFilter,
+      trimRange: state.trimRange,
       outputName: getOutputName(state.file.name)
     };
 
@@ -456,6 +600,14 @@ export function initializeApp(root: HTMLDivElement): void {
     render();
   };
 
+  const seekPreview = (time: number) => {
+    if (!Number.isFinite(time)) {
+      return;
+    }
+
+    inputPreview.currentTime = Math.max(time, 0);
+  };
+
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files?.[0];
 
@@ -476,6 +628,50 @@ export function initializeApp(root: HTMLDivElement): void {
 
   cancelButton.addEventListener("click", () => {
     cancelConversion();
+  });
+
+  trimStartInput.addEventListener("input", () => {
+    if (!hasKnownDuration(state.metadata) || !state.trimRange || state.isBusy) {
+      return;
+    }
+
+    const startTime = clampTrimStart(
+      Number(trimStartInput.value),
+      state.trimRange.endTime,
+      state.metadata.duration,
+      MIN_TRIM_SPAN
+    );
+
+    state.trimRange = {
+      startTime,
+      endTime: state.trimRange.endTime
+    };
+    clearResult();
+    state.conversionState = "ready";
+    seekPreview(startTime);
+    render();
+  });
+
+  trimEndInput.addEventListener("input", () => {
+    if (!hasKnownDuration(state.metadata) || !state.trimRange || state.isBusy) {
+      return;
+    }
+
+    const endTime = clampTrimEnd(
+      state.trimRange.startTime,
+      Number(trimEndInput.value),
+      state.metadata.duration,
+      MIN_TRIM_SPAN
+    );
+
+    state.trimRange = {
+      startTime: state.trimRange.startTime,
+      endTime
+    };
+    clearResult();
+    state.conversionState = "ready";
+    seekPreview(Math.min(endTime, Math.max(state.metadata.duration - 0.05, 0)));
+    render();
   });
 
   window.addEventListener("beforeunload", () => {

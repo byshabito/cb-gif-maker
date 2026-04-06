@@ -220,6 +220,135 @@ button:disabled {
   font-size: 0.92rem;
 }
 
+.trim-controls {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(20, 34, 31, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.trim-header,
+.trim-readouts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.trim-title,
+.trim-duration,
+.trim-chip {
+  margin: 0;
+}
+
+.trim-title {
+  font-weight: 700;
+}
+
+.trim-duration {
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+}
+
+.trim-slider-stack {
+  position: relative;
+  height: 2.5rem;
+}
+
+.trim-slider-track,
+.trim-selected-range {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0.45rem;
+  border-radius: 999px;
+  transform: translateY(-50%);
+}
+
+.trim-slider-track {
+  background: rgba(20, 34, 31, 0.1);
+}
+
+.trim-selected-range {
+  right: auto;
+  background: linear-gradient(90deg, #5f9b89, #bf5d35);
+  pointer-events: none;
+}
+
+.trim-slider {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+  pointer-events: none;
+}
+
+.trim-slider::-webkit-slider-runnable-track {
+  height: 2.5rem;
+  background: transparent;
+}
+
+.trim-slider::-moz-range-track {
+  height: 2.5rem;
+  background: transparent;
+}
+
+.trim-slider::-webkit-slider-thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.675rem;
+  border: 2px solid rgba(255, 249, 242, 0.95);
+  border-radius: 50%;
+  background: #14221f;
+  box-shadow: 0 6px 18px rgba(20, 34, 31, 0.2);
+  appearance: none;
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.trim-slider::-moz-range-thumb {
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 2px solid rgba(255, 249, 242, 0.95);
+  border-radius: 50%;
+  background: #14221f;
+  box-shadow: 0 6px 18px rgba(20, 34, 31, 0.2);
+  cursor: ew-resize;
+  pointer-events: auto;
+}
+
+.trim-slider:disabled::-webkit-slider-thumb,
+.trim-slider:disabled::-moz-range-thumb {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.trim-chip {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 7.5rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 14px;
+  background: rgba(20, 34, 31, 0.05);
+}
+
+.trim-chip-label {
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .input-preview-wrap {
   margin-top: -0.2rem;
 }
@@ -397,6 +526,19 @@ button:disabled {
   .status-result,
   .controls-panel article {
     gap: 0.8rem;
+  }
+
+  .trim-controls {
+    padding: 0.85rem;
+  }
+
+  .trim-readouts {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .trim-chip {
+    min-width: 0;
   }
 }
 

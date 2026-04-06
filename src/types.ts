@@ -13,10 +13,16 @@ export type InputMetadata = {
   duration?: number;
 };
 
+export type TrimRange = {
+  startTime: number;
+  endTime: number;
+};
+
 export type ConversionJob = {
   file: File;
   metadata: InputMetadata;
   scaleFilter: ScaleFilter;
+  trimRange: TrimRange | null;
   outputName: string;
 };
 
