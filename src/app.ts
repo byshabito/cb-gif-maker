@@ -22,6 +22,7 @@ type AppState = {
   metadata: InputMetadata | null;
   scaleFilter: ScaleFilter | null;
   result: ConversionResult | null;
+  inputPreviewUrl: string | null;
   statusMessage: string;
   errorMessage: string;
   warningMessage: string;
@@ -36,6 +37,7 @@ const initialState = (): AppState => ({
   metadata: null,
   scaleFilter: null,
   result: null,
+  inputPreviewUrl: null,
   statusMessage: "Select a local video to begin.",
   errorMessage: "",
   warningMessage: "",
@@ -104,17 +106,25 @@ export function initializeApp(root: HTMLDivElement): void {
       </section>
       <section class="panel controls-panel">
         <article>
-          <h2>Input</h2>
           <label class="file-picker">
             <span>Choose a video</span>
             <input id="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
           </label>
+          <div id="input-preview-wrap" class="input-preview-wrap" hidden>
+            <video
+              id="input-preview"
+              class="input-preview"
+              controls
+              muted
+              playsinline
+              preload="metadata"
+            ></video>
+          </div>
           <p id="input-summary" class="input-summary">- / - / -</p>
           <p id="warning-message" class="message warning" hidden></p>
           <p id="error-message" class="message error" hidden></p>
         </article>
         <article>
-          <h2>Status</h2>
           <p id="status-message" class="status-text">${state.statusMessage}</p>
           <div id="progress-wrap" class="progress-wrap" hidden>
             <div class="progress-track">
@@ -141,6 +151,8 @@ export function initializeApp(root: HTMLDivElement): void {
   const fileInput = root.querySelector<HTMLInputElement>("#file-input");
   const convertButton = root.querySelector<HTMLButtonElement>("#convert-button");
   const reloadButton = root.querySelector<HTMLButtonElement>("#reload-button");
+  const inputPreviewWrap = root.querySelector<HTMLElement>("#input-preview-wrap");
+  const inputPreview = root.querySelector<HTMLVideoElement>("#input-preview");
   const inputSummary = root.querySelector<HTMLElement>("#input-summary");
   const warningMessage = root.querySelector<HTMLElement>("#warning-message");
   const errorMessage = root.querySelector<HTMLElement>("#error-message");
@@ -157,6 +169,8 @@ export function initializeApp(root: HTMLDivElement): void {
     !fileInput ||
     !convertButton ||
     !reloadButton ||
+    !inputPreviewWrap ||
+    !inputPreview ||
     !inputSummary ||
     !warningMessage ||
     !errorMessage ||
@@ -180,6 +194,17 @@ export function initializeApp(root: HTMLDivElement): void {
     state.result = null;
   };
 
+  const clearInputPreview = () => {
+    inputPreview.pause();
+    inputPreview.removeAttribute("src");
+    inputPreview.load();
+
+    if (state.inputPreviewUrl) {
+      URL.revokeObjectURL(state.inputPreviewUrl);
+      state.inputPreviewUrl = null;
+    }
+  };
+
   const render = () => {
     const inputSize = state.file
       ? formatBytes(state.file.size)
@@ -191,6 +216,11 @@ export function initializeApp(root: HTMLDivElement): void {
       ? formatDuration(state.metadata.duration)
       : "-";
     inputSummary.textContent = `${inputSize} / ${inputDimensions} / ${inputDuration}`;
+    inputPreviewWrap.hidden = state.inputPreviewUrl === null;
+
+    if (state.inputPreviewUrl) {
+      inputPreview.src = state.inputPreviewUrl;
+    }
 
     warningMessage.hidden = !state.warningMessage;
     warningMessage.textContent = state.warningMessage;
@@ -287,6 +317,7 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const prepareFile = async (file: File) => {
     clearResult();
+    clearInputPreview();
     state.progress = null;
 
     if (!isSupportedVideo(file)) {
@@ -301,6 +332,7 @@ export function initializeApp(root: HTMLDivElement): void {
     }
 
     state.file = file;
+    state.inputPreviewUrl = URL.createObjectURL(file);
     state.metadata = null;
     state.scaleFilter = null;
     state.warningMessage =
@@ -380,6 +412,7 @@ export function initializeApp(root: HTMLDivElement): void {
 
     if (!file) {
       clearResult();
+      clearInputPreview();
       Object.assign(state, initialState());
       render();
       return;
@@ -398,6 +431,7 @@ export function initializeApp(root: HTMLDivElement): void {
 
   window.addEventListener("beforeunload", () => {
     clearResult();
+    clearInputPreview();
     converter.terminate();
   });
 
