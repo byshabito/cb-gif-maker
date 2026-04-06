@@ -320,12 +320,83 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .controls-panel article {
+    width: 100%;
+  }
+
+  .output-column {
+    min-height: 0;
+  }
+
   .action-column {
     justify-content: flex-start;
+    width: 100%;
+  }
+
+  .convert-button,
+  .ghost-button {
+    width: 100%;
+    max-width: 24rem;
+  }
+
+  .progress-wrap {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --media-frame-height: 220px;
+  }
+
+  .shell {
+    width: min(100vw - 1rem, 1100px);
+    padding: 1.25rem 0 2rem;
+  }
+
+  .hero {
+    padding: 1.25rem 0 1rem;
   }
 
   .hero h1 {
-    max-width: 9ch;
+    font-size: clamp(2.2rem, 13vw, 3.4rem);
+    line-height: 0.98;
+  }
+
+  .lede {
+    font-size: 1rem;
+  }
+
+  .panel {
+    padding: 1rem;
+    border-radius: 22px;
+  }
+
+  .controls-panel {
+    gap: 1rem;
+  }
+
+  .file-picker-ui {
+    height: auto;
+    min-height: 58px;
+    padding: 0.6rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .file-picker-button {
+    width: 100%;
+  }
+
+  .file-name {
+    text-align: center;
+  }
+
+  .preview-skeleton,
+  .status-result,
+  .controls-panel article {
+    gap: 0.8rem;
   }
 }
 
