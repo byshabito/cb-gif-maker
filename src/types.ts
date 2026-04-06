@@ -25,7 +25,6 @@ export type ConversionResult = {
   objectUrl: string;
   bytes: number;
   elapsedMs: number;
-  logs: string[];
 };
 
 export type FfmpegAssetPaths = {

@@ -230,22 +230,6 @@ button:disabled {
   margin: 0;
 }
 
-.log-output {
-  overflow: auto;
-  margin: 1rem 0 0;
-  min-height: 14rem;
-  max-height: 24rem;
-  padding: 1rem;
-  border-radius: 18px;
-  background: #182421;
-  color: #dce6df;
-  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 0.88rem;
-  line-height: 1.45;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
 .result-panel {
   display: grid;
   gap: 1rem;
@@ -292,4 +276,3 @@ button:disabled {
     scroll-behavior: auto !important;
   }
 }
-

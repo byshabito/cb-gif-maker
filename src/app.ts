@@ -15,7 +15,6 @@ import type {
 
 const ACCEPTED_VIDEO_TYPES = ".mp4,.webm,.mov,video/*";
 const WARNING_SIZE_BYTES = 200 * 1024 * 1024;
-const MAX_LOG_LINES = 200;
 
 type AppState = {
   conversionState: ConversionState;
@@ -29,7 +28,6 @@ type AppState = {
   showReloadEngine: boolean;
   isBusy: boolean;
   progress: number | null;
-  logs: string[];
 };
 
 const initialState = (): AppState => ({
@@ -43,8 +41,7 @@ const initialState = (): AppState => ({
   warningMessage: "",
   showReloadEngine: false,
   isBusy: false,
-  progress: null,
-  logs: []
+  progress: null
 });
 
 function formatBytes(bytes: number): string {
@@ -139,13 +136,6 @@ export function initializeApp(root: HTMLDivElement): void {
           </div>
         </article>
       </section>
-      <section class="panel log-panel">
-        <div class="section-heading">
-          <h2>Logs</h2>
-          <span class="caption">Latest ffmpeg output</span>
-        </div>
-        <pre id="log-output" class="log-output">Waiting for work.</pre>
-      </section>
       <section id="result-panel" class="panel result-panel" hidden>
         <div class="section-heading">
           <h2>Result</h2>
@@ -170,7 +160,6 @@ export function initializeApp(root: HTMLDivElement): void {
   const statusMessage = root.querySelector<HTMLElement>("#status-message");
   const progressBar = root.querySelector<HTMLElement>("#progress-bar");
   const progressLabel = root.querySelector<HTMLElement>("#progress-label");
-  const logOutput = root.querySelector<HTMLElement>("#log-output");
   const resultPanel = root.querySelector<HTMLElement>("#result-panel");
   const resultMeta = root.querySelector<HTMLElement>("#result-meta");
   const resultPreview = root.querySelector<HTMLImageElement>("#result-preview");
@@ -190,7 +179,6 @@ export function initializeApp(root: HTMLDivElement): void {
     !statusMessage ||
     !progressBar ||
     !progressLabel ||
-    !logOutput ||
     !resultPanel ||
     !resultMeta ||
     !resultPreview ||
@@ -198,11 +186,6 @@ export function initializeApp(root: HTMLDivElement): void {
   ) {
     throw new Error("App failed to initialize.");
   }
-
-  const pushLog = (line: string) => {
-    state.logs = [...state.logs, line].slice(-MAX_LOG_LINES);
-    render();
-  };
 
   const clearResult = () => {
     if (state.result) {
@@ -239,8 +222,6 @@ export function initializeApp(root: HTMLDivElement): void {
       state.progress === null
         ? state.conversionState
         : `${Math.round(state.progress * 100)}%`;
-    logOutput.textContent =
-      state.logs.length > 0 ? state.logs.join("\n") : "Waiting for work.";
 
     resultPanel.hidden = !state.result;
 
@@ -275,7 +256,7 @@ export function initializeApp(root: HTMLDivElement): void {
 
   converter.setHandlers({
     onLog: (line) => {
-      pushLog(line);
+      console.log("[ffmpeg]", line);
     },
     onProgress: (value) => {
       state.progress = value;
@@ -317,7 +298,6 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const prepareFile = async (file: File) => {
     clearResult();
-    state.logs = [];
     state.progress = null;
 
     if (!isSupportedVideo(file)) {
@@ -384,7 +364,6 @@ export function initializeApp(root: HTMLDivElement): void {
     state.isBusy = true;
     state.errorMessage = "";
     state.statusMessage = `Converting ${job.file.name} to ${job.outputName}.`;
-    state.logs = [];
     state.progress = 0;
     render();
 
@@ -392,7 +371,6 @@ export function initializeApp(root: HTMLDivElement): void {
       const result = await converter.convert(job);
       clearResult();
       state.result = result;
-      state.logs = result.logs.slice(-MAX_LOG_LINES);
       state.conversionState = "done";
       state.statusMessage = "GIF ready for preview and download.";
       render();

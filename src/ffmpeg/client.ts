@@ -25,12 +25,10 @@ export class BrowserGifConverter {
   private loadPromise: Promise<void> | null = null;
   private loaded = false;
   private handlers: ProgressHandlers = {};
-  private activeLogSink?: (line: string) => void;
   private resolvedPaths: ResolvedFfmpegLoadPaths | null = null;
 
   constructor() {
     this.ffmpeg.on("log", ({ message }) => {
-      this.activeLogSink?.(message);
       this.handlers.onLog?.(message);
     });
 
@@ -83,13 +81,9 @@ export class BrowserGifConverter {
 
   async convert(job: ConversionJob): Promise<ConversionResult> {
     const files = getConversionFiles(job.file.name);
-    const logs: string[] = [];
     const startTime = performance.now();
 
     try {
-      this.activeLogSink = (line) => {
-        logs.push(line);
-      };
       this.handlers.onProgress?.(0);
       await this.ffmpeg.writeFile(files.input, await fetchFile(job.file));
 
@@ -117,11 +111,9 @@ export class BrowserGifConverter {
         blob,
         objectUrl,
         bytes: blob.size,
-        elapsedMs: performance.now() - startTime,
-        logs
+        elapsedMs: performance.now() - startTime
       };
     } finally {
-      this.activeLogSink = undefined;
       await Promise.allSettled(
         [files.input, files.clean, files.reduced, files.palette, files.output]
           .map((path) => this.ffmpeg.deleteFile(path))
