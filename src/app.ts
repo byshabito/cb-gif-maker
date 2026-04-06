@@ -14,8 +14,6 @@ import type {
 } from "./types";
 
 const ACCEPTED_VIDEO_TYPES = ".mp4,.webm,.mov,video/*";
-const WARNING_SIZE_BYTES = 200 * 1024 * 1024;
-
 type AppState = {
   conversionState: ConversionState;
   file: File | null;
@@ -23,10 +21,7 @@ type AppState = {
   scaleFilter: ScaleFilter | null;
   result: ConversionResult | null;
   inputPreviewUrl: string | null;
-  statusMessage: string;
   errorMessage: string;
-  warningMessage: string;
-  showReloadEngine: boolean;
   isBusy: boolean;
   progress: number | null;
 };
@@ -38,10 +33,7 @@ const initialState = (): AppState => ({
   scaleFilter: null,
   result: null,
   inputPreviewUrl: null,
-  statusMessage: "Select a local video to begin.",
   errorMessage: "",
-  warningMessage: "",
-  showReloadEngine: false,
   isBusy: false,
   progress: null
 });
@@ -121,16 +113,13 @@ export function initializeApp(root: HTMLDivElement): void {
             ></video>
           </div>
           <p id="input-summary" class="input-summary">- / - / -</p>
-          <p id="warning-message" class="message warning" hidden></p>
           <p id="error-message" class="message error" hidden></p>
         </article>
         <article>
-          <p id="status-message" class="status-text">${state.statusMessage}</p>
           <div id="progress-wrap" class="progress-wrap" hidden>
             <div class="progress-track">
               <div id="progress-bar" class="progress-bar"></div>
             </div>
-            <p id="progress-label" class="progress-label">Idle</p>
           </div>
           <div id="status-result" class="status-result" hidden>
             <img id="result-preview" class="result-preview" alt="Generated GIF preview" />
@@ -141,7 +130,6 @@ export function initializeApp(root: HTMLDivElement): void {
           </div>
           <div class="actions status-actions">
             <button id="convert-button" class="primary" type="button" disabled>Convert to GIF</button>
-            <button id="reload-button" type="button" hidden>Reload engine</button>
           </div>
         </article>
       </section>
@@ -150,16 +138,12 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const fileInput = root.querySelector<HTMLInputElement>("#file-input");
   const convertButton = root.querySelector<HTMLButtonElement>("#convert-button");
-  const reloadButton = root.querySelector<HTMLButtonElement>("#reload-button");
   const inputPreviewWrap = root.querySelector<HTMLElement>("#input-preview-wrap");
   const inputPreview = root.querySelector<HTMLVideoElement>("#input-preview");
   const inputSummary = root.querySelector<HTMLElement>("#input-summary");
-  const warningMessage = root.querySelector<HTMLElement>("#warning-message");
   const errorMessage = root.querySelector<HTMLElement>("#error-message");
-  const statusMessage = root.querySelector<HTMLElement>("#status-message");
   const progressWrap = root.querySelector<HTMLElement>("#progress-wrap");
   const progressBar = root.querySelector<HTMLElement>("#progress-bar");
-  const progressLabel = root.querySelector<HTMLElement>("#progress-label");
   const statusResult = root.querySelector<HTMLElement>("#status-result");
   const resultMeta = root.querySelector<HTMLElement>("#result-meta");
   const resultPreview = root.querySelector<HTMLImageElement>("#result-preview");
@@ -168,16 +152,12 @@ export function initializeApp(root: HTMLDivElement): void {
   if (
     !fileInput ||
     !convertButton ||
-    !reloadButton ||
     !inputPreviewWrap ||
     !inputPreview ||
     !inputSummary ||
-    !warningMessage ||
     !errorMessage ||
-    !statusMessage ||
     !progressWrap ||
     !progressBar ||
-    !progressLabel ||
     !statusResult ||
     !resultMeta ||
     !resultPreview ||
@@ -247,11 +227,8 @@ export function initializeApp(root: HTMLDivElement): void {
     inputPreviewWrap.hidden = state.inputPreviewUrl === null;
     syncMediaSource(inputPreview, state.inputPreviewUrl);
 
-    warningMessage.hidden = !state.warningMessage;
-    warningMessage.textContent = state.warningMessage;
     errorMessage.hidden = !state.errorMessage;
     errorMessage.textContent = state.errorMessage;
-    statusMessage.textContent = state.statusMessage;
 
     const showResult = state.result !== null;
     const showProgress =
@@ -264,10 +241,6 @@ export function initializeApp(root: HTMLDivElement): void {
     progressWrap.hidden = !showProgress;
     statusResult.hidden = !showResult;
     progressBar.style.width = `${Math.round((state.progress ?? 0) * 100)}%`;
-    progressLabel.textContent =
-      state.progress === null
-        ? state.conversionState
-        : `${Math.round(state.progress * 100)}%`;
 
     if (state.result) {
       syncMediaSource(resultPreview, state.result.objectUrl);
@@ -284,18 +257,14 @@ export function initializeApp(root: HTMLDivElement): void {
       downloadLink.download = "";
     }
 
-    reloadButton.hidden = !state.showReloadEngine;
-
     const canConvert =
       !state.isBusy &&
       state.file !== null &&
       state.metadata !== null &&
-      state.scaleFilter !== null &&
-      !state.showReloadEngine;
+      state.scaleFilter !== null;
 
     convertButton.disabled = !canConvert;
     fileInput.disabled = state.isBusy;
-    reloadButton.disabled = state.isBusy;
   };
 
   converter.setHandlers({
@@ -311,8 +280,6 @@ export function initializeApp(root: HTMLDivElement): void {
   const loadEngine = async (forceReload = false) => {
     state.conversionState = "loading-engine";
     state.isBusy = true;
-    state.showReloadEngine = false;
-    state.statusMessage = "Loading ffmpeg engine from local site assets.";
     state.errorMessage = "";
     state.progress = null;
     render();
@@ -326,16 +293,11 @@ export function initializeApp(root: HTMLDivElement): void {
 
       state.isBusy = false;
       state.conversionState = state.metadata ? "ready" : "idle";
-      state.statusMessage = state.metadata
-        ? "Engine ready. Convert when you are ready."
-        : "Engine ready. Select a local video to begin.";
       render();
     } catch (error) {
       state.isBusy = false;
       state.conversionState = "error";
-      state.showReloadEngine = true;
       state.errorMessage = `Failed to load ffmpeg engine: ${sanitizeError(error)}`;
-      state.statusMessage = "Engine load failed.";
       render();
     }
   };
@@ -351,7 +313,6 @@ export function initializeApp(root: HTMLDivElement): void {
       state.scaleFilter = null;
       state.conversionState = "error";
       state.errorMessage = "Unsupported file type. Use MP4, WebM, MOV, or another browser-readable video.";
-      state.statusMessage = "Select a supported local video.";
       render();
       return;
     }
@@ -360,13 +321,8 @@ export function initializeApp(root: HTMLDivElement): void {
     state.inputPreviewUrl = URL.createObjectURL(file);
     state.metadata = null;
     state.scaleFilter = null;
-    state.warningMessage =
-      file.size > WARNING_SIZE_BYTES
-        ? "Large files over 200 MB can fail in the browser because of memory limits."
-        : "";
     state.errorMessage = "";
     state.conversionState = "probing";
-    state.statusMessage = "Reading local video metadata in the browser.";
     render();
 
     try {
@@ -374,14 +330,12 @@ export function initializeApp(root: HTMLDivElement): void {
       state.metadata = metadata;
       state.scaleFilter = computeScaleFilter(metadata.width, metadata.height);
       state.conversionState = "ready";
-      state.statusMessage = "Video ready. Convert to generate a GIF.";
       render();
     } catch (error) {
       state.metadata = null;
       state.scaleFilter = null;
       state.conversionState = "error";
       state.errorMessage = sanitizeError(error);
-      state.statusMessage = "Metadata probe failed.";
       render();
     }
   };
@@ -398,9 +352,7 @@ export function initializeApp(root: HTMLDivElement): void {
       outputName: getOutputName(state.file.name)
     };
 
-    if (!state.showReloadEngine) {
-      await loadEngine(false);
-    }
+    await loadEngine(false);
 
     if (state.conversionState === "error") {
       return;
@@ -409,7 +361,6 @@ export function initializeApp(root: HTMLDivElement): void {
     state.conversionState = "converting";
     state.isBusy = true;
     state.errorMessage = "";
-    state.statusMessage = `Converting ${job.file.name} to ${job.outputName}.`;
     state.progress = 0;
     render();
 
@@ -418,12 +369,10 @@ export function initializeApp(root: HTMLDivElement): void {
       clearResult();
       state.result = result;
       state.conversionState = "done";
-      state.statusMessage = "GIF ready for preview and download.";
       render();
     } catch (error) {
       state.conversionState = "error";
       state.errorMessage = `Conversion failed: ${sanitizeError(error)}`;
-      state.statusMessage = "Conversion failed.";
       render();
     } finally {
       state.isBusy = false;
@@ -448,10 +397,6 @@ export function initializeApp(root: HTMLDivElement): void {
 
   convertButton.addEventListener("click", async () => {
     await runConversion();
-  });
-
-  reloadButton.addEventListener("click", async () => {
-    await loadEngine(true);
   });
 
   window.addEventListener("beforeunload", () => {

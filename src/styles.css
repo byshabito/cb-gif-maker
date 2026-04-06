@@ -172,19 +172,9 @@ button:disabled {
   border-radius: 14px;
 }
 
-.message.warning {
-  background: rgba(240, 177, 79, 0.15);
-  color: var(--warning);
-}
-
 .message.error {
   background: rgba(201, 73, 73, 0.12);
   color: var(--error);
-}
-
-.status-text {
-  margin: 0;
-  min-height: 1.5em;
 }
 
 .progress-wrap {
@@ -216,7 +206,6 @@ button:disabled {
   transition: width 180ms ease;
 }
 
-.progress-label,
 .caption {
   margin: 0.7rem 0 0;
   color: var(--ink-soft);
