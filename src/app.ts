@@ -97,7 +97,7 @@ export function initializeApp(root: HTMLDivElement): void {
         <p class="lede">Runs entirely in your browser with ffmpeg.wasm. No uploads. No backend.</p>
       </section>
       <section class="panel controls-panel">
-        <article>
+        <article class="input-column">
           <label class="file-picker">
             <span>Choose a video</span>
             <input id="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
@@ -115,7 +115,10 @@ export function initializeApp(root: HTMLDivElement): void {
           <p id="input-summary" class="input-summary">- / - / -</p>
           <p id="error-message" class="message error" hidden></p>
         </article>
-        <article>
+        <div class="action-column">
+          <button id="convert-button" class="primary convert-button" type="button" disabled>Convert to GIF</button>
+        </div>
+        <article class="output-column">
           <div id="progress-wrap" class="progress-wrap" hidden>
             <div class="progress-track">
               <div id="progress-bar" class="progress-bar"></div>
@@ -127,9 +130,6 @@ export function initializeApp(root: HTMLDivElement): void {
               <span id="result-meta" class="caption"></span>
               <a id="download-link" class="primary download-link" download="">Download GIF</a>
             </div>
-          </div>
-          <div class="actions status-actions">
-            <button id="convert-button" class="primary" type="button" disabled>Convert to GIF</button>
           </div>
         </article>
       </section>

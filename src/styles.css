@@ -114,9 +114,9 @@ button:disabled {
 
 .controls-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 1rem;
-  align-items: start;
+  grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: stretch;
 }
 
 .file-picker {
@@ -145,6 +145,16 @@ button:disabled {
   display: grid;
   gap: 0.9rem;
   align-content: start;
+}
+
+.action-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.convert-button {
+  min-width: 10rem;
 }
 
 .input-summary {
@@ -181,15 +191,10 @@ button:disabled {
   margin-top: 1rem;
 }
 
-.status-actions {
-  margin-top: 1.2rem;
-  justify-content: flex-start;
-}
-
 .status-result {
   display: grid;
   gap: 0.85rem;
-  margin-top: 1rem;
+  margin-top: 0.2rem;
 }
 
 .progress-track {
@@ -254,7 +259,7 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .actions {
+  .action-column {
     justify-content: flex-start;
   }
 
