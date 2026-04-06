@@ -23,6 +23,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-width: 320px;
@@ -147,6 +151,14 @@ button:disabled {
   align-content: start;
 }
 
+.output-column {
+  min-height: 320px;
+}
+
+.output-column[data-mode="progress"] {
+  align-content: center;
+}
+
 .action-column {
   display: flex;
   align-items: center;
@@ -188,13 +200,14 @@ button:disabled {
 }
 
 .progress-wrap {
-  margin-top: 1rem;
+  width: min(100%, 420px);
+  margin: 0 auto;
 }
 
 .status-result {
   display: grid;
   gap: 0.85rem;
-  margin-top: 0.2rem;
+  margin: 0;
 }
 
 .progress-track {

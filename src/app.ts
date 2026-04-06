@@ -125,10 +125,10 @@ export function initializeApp(root: HTMLDivElement): void {
             </div>
           </div>
           <div id="status-result" class="status-result" hidden>
-            <img id="result-preview" class="result-preview" alt="Generated GIF preview" />
+            <img id="result-preview" class="result-preview" alt="Generated GIF preview" hidden />
             <div class="result-toolbar">
-              <span id="result-meta" class="caption"></span>
-              <a id="download-link" class="primary download-link" download="">Download GIF</a>
+              <span id="result-meta" class="caption" hidden></span>
+              <a id="download-link" class="primary download-link" download="" hidden>Download GIF</a>
             </div>
           </div>
         </article>
@@ -145,6 +145,7 @@ export function initializeApp(root: HTMLDivElement): void {
   const progressWrap = root.querySelector<HTMLElement>("#progress-wrap");
   const progressBar = root.querySelector<HTMLElement>("#progress-bar");
   const statusResult = root.querySelector<HTMLElement>("#status-result");
+  const outputColumn = root.querySelector<HTMLElement>(".output-column");
   const resultMeta = root.querySelector<HTMLElement>("#result-meta");
   const resultPreview = root.querySelector<HTMLImageElement>("#result-preview");
   const downloadLink = root.querySelector<HTMLAnchorElement>("#download-link");
@@ -159,6 +160,7 @@ export function initializeApp(root: HTMLDivElement): void {
     !progressWrap ||
     !progressBar ||
     !statusResult ||
+    !outputColumn ||
     !resultMeta ||
     !resultPreview ||
     !downloadLink
@@ -238,11 +240,19 @@ export function initializeApp(root: HTMLDivElement): void {
         state.conversionState === "loading-engine" ||
         state.conversionState === "converting");
 
+    outputColumn.dataset.mode = showResult
+      ? "result"
+      : showProgress
+        ? "progress"
+        : "idle";
     progressWrap.hidden = !showProgress;
     statusResult.hidden = !showResult;
     progressBar.style.width = `${Math.round((state.progress ?? 0) * 100)}%`;
 
     if (state.result) {
+      resultPreview.hidden = false;
+      resultMeta.hidden = false;
+      downloadLink.hidden = false;
       syncMediaSource(resultPreview, state.result.objectUrl);
       resultMeta.textContent =
         `${formatBytes(state.result.bytes)} / ` +
@@ -251,6 +261,9 @@ export function initializeApp(root: HTMLDivElement): void {
       downloadLink.href = state.result.objectUrl;
       downloadLink.download = state.file ? getOutputName(state.file.name) : "output.gif";
     } else {
+      resultPreview.hidden = true;
+      resultMeta.hidden = true;
+      downloadLink.hidden = true;
       syncMediaSource(resultPreview, null);
       resultMeta.textContent = "";
       downloadLink.removeAttribute("href");
