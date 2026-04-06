@@ -84,6 +84,16 @@ export function initializeApp(root: HTMLDivElement): void {
   const converter = new BrowserGifConverter();
   const state = initialState();
   let activeOperationId = 0;
+  const convertingFrames = [
+    "Converting",
+    "Converting.",
+    "Converting..",
+    "Converting..."
+  ];
+  let convertingFrameIndex = 0;
+  let convertingLabelTimer: number | null = null;
+  let wasAnimating = false;
+  let accessibleConvertButtonLabel = "Convert to GIF";
 
   root.innerHTML = `
     <main class="shell">
@@ -118,7 +128,12 @@ export function initializeApp(root: HTMLDivElement): void {
           <p id="error-message" class="message error" hidden></p>
         </article>
         <div class="action-column">
-          <button id="convert-button" class="primary convert-button" type="button" disabled>Convert to GIF</button>
+          <button id="convert-button" class="primary convert-button" type="button" disabled>
+            <span id="convert-button-label" class="convert-button__label" aria-hidden="true">Convert to GIF</span>
+            <span class="convert-button__label convert-button__label--reserve" aria-hidden="true">Convert to GIF</span>
+            <span class="convert-button__label convert-button__label--reserve" aria-hidden="true">Converting...</span>
+            <span id="convert-button-a11y-label" class="sr-only">Convert to GIF</span>
+          </button>
           <button id="cancel-button" class="ghost-button" type="button" hidden>Cancel</button>
         </div>
         <article class="output-column">
@@ -143,6 +158,8 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const fileInput = root.querySelector<HTMLInputElement>("#file-input");
   const convertButton = root.querySelector<HTMLButtonElement>("#convert-button");
+  const convertButtonLabel = root.querySelector<HTMLElement>("#convert-button-label");
+  const convertButtonA11yLabel = root.querySelector<HTMLElement>("#convert-button-a11y-label");
   const cancelButton = root.querySelector<HTMLButtonElement>("#cancel-button");
   const inputSkeleton = root.querySelector<HTMLElement>("#input-skeleton");
   const inputPreviewWrap = root.querySelector<HTMLElement>("#input-preview-wrap");
@@ -162,6 +179,8 @@ export function initializeApp(root: HTMLDivElement): void {
   if (
     !fileInput ||
     !convertButton ||
+    !convertButtonLabel ||
+    !convertButtonA11yLabel ||
     !cancelButton ||
     !inputSkeleton ||
     !inputPreviewWrap ||
@@ -226,6 +245,66 @@ export function initializeApp(root: HTMLDivElement): void {
 
     element.src = objectUrl;
     element.dataset.objectUrl = objectUrl;
+  };
+
+  const getVisibleConvertButtonLabel = (): string => {
+    switch (state.conversionState) {
+      case "loading-engine":
+        return "Preparing...";
+      case "converting":
+        return convertingFrames[convertingFrameIndex];
+      default:
+        return "Convert to GIF";
+    }
+  };
+
+  const getAccessibleConvertButtonLabel = (): string => {
+    switch (state.conversionState) {
+      case "loading-engine":
+        return "Preparing...";
+      case "converting":
+        return "Converting...";
+      default:
+        return "Convert to GIF";
+    }
+  };
+
+  const syncConvertButtonLabels = () => {
+    convertButtonLabel.textContent = getVisibleConvertButtonLabel();
+
+    const nextAccessibleLabel = getAccessibleConvertButtonLabel();
+    if (accessibleConvertButtonLabel !== nextAccessibleLabel) {
+      accessibleConvertButtonLabel = nextAccessibleLabel;
+      convertButtonA11yLabel.textContent = nextAccessibleLabel;
+    }
+  };
+
+  const stopConvertingLabelAnimation = () => {
+    if (convertingLabelTimer !== null) {
+      window.clearInterval(convertingLabelTimer);
+      convertingLabelTimer = null;
+    }
+
+    convertingFrameIndex = 0;
+  };
+
+  const startConvertingLabelAnimation = () => {
+    if (convertingLabelTimer !== null) {
+      return;
+    }
+
+    convertingFrameIndex = 0;
+    syncConvertButtonLabels();
+    convertingLabelTimer = window.setInterval(() => {
+      if (state.conversionState !== "converting") {
+        stopConvertingLabelAnimation();
+        syncConvertButtonLabels();
+        return;
+      }
+
+      convertingFrameIndex = (convertingFrameIndex + 1) % convertingFrames.length;
+      convertButtonLabel.textContent = getVisibleConvertButtonLabel();
+    }, 400);
   };
 
   const render = () => {
@@ -295,7 +374,15 @@ export function initializeApp(root: HTMLDivElement): void {
       state.metadata !== null &&
       state.scaleFilter !== null;
 
-    convertButton.textContent = state.isBusy ? "Converting..." : "Convert to GIF";
+    const isAnimating = state.conversionState === "converting";
+    if (isAnimating && !wasAnimating) {
+      startConvertingLabelAnimation();
+    } else if (!isAnimating && wasAnimating) {
+      stopConvertingLabelAnimation();
+    }
+    wasAnimating = isAnimating;
+
+    syncConvertButtonLabels();
     convertButton.disabled = !canConvert;
     cancelButton.hidden = !state.isBusy;
     fileInput.disabled = state.isBusy;
@@ -479,6 +566,7 @@ export function initializeApp(root: HTMLDivElement): void {
   });
 
   window.addEventListener("beforeunload", () => {
+    stopConvertingLabelAnimation();
     clearResult();
     clearInputPreview();
     converter.terminate();
