@@ -49,5 +49,6 @@ The production URL for this project site is `https://shabito.net/cb-gif-maker/`.
 
 ## Licensing note
 
+- This project is licensed under `GPL-3.0-or-later`.
 - `@ffmpeg/ffmpeg` and `@ffmpeg/util` are MIT-licensed packages.
-- `@ffmpeg/core` bundles FFmpeg-related assets and should be reviewed with FFmpeg licensing requirements in mind before redistribution.
+- `@ffmpeg/core` bundles FFmpeg-related assets and is `GPL-2.0-or-later`; keep its notices in place when redistributing the bundled core.
