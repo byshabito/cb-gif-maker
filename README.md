@@ -10,7 +10,7 @@ Browser-only GIF conversion for GitHub Pages, powered by `ffmpeg.wasm`.
   - `scale=250:-1` for wide inputs, otherwise `scale=-1:80`
   - `palettegen`
   - `paletteuse=dither=bayer:bayer_scale=3`
-- Supports common local inputs such as `.mp4`, `.webm`, and `.mov` when the browser can read metadata and `ffmpeg.wasm` can process the file.
+- Supports local `.mp4` input.
 
 ## Local development
 
@@ -43,7 +43,7 @@ This repo includes `.github/workflows/deploy.yml` for the standard GitHub Pages 
 
 - Large files can fail because browser memory is limited.
 - `ffmpeg.wasm` also documents a 2 GB WebAssembly limit.
-- Some `.mov` files will fail before conversion if the browser cannot read their metadata locally.
+- Only MP4 input is supported in this version.
 - Processing happens on the client, so slower devices may take a while.
 
 ## Licensing note

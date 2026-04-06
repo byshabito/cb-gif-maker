@@ -13,7 +13,7 @@ import type {
   ScaleFilter
 } from "./types";
 
-const ACCEPTED_VIDEO_TYPES = ".mp4,.webm,.mov,video/*";
+const ACCEPTED_VIDEO_TYPES = ".mp4,video/mp4";
 type AppState = {
   conversionState: ConversionState;
   file: File | null;
@@ -69,12 +69,7 @@ function sanitizeError(error: unknown): string {
 
 function isSupportedVideo(file: File): boolean {
   const lowerName = file.name.toLowerCase();
-  return (
-    lowerName.endsWith(".mp4") ||
-    lowerName.endsWith(".webm") ||
-    lowerName.endsWith(".mov") ||
-    file.type.startsWith("video/")
-  );
+  return lowerName.endsWith(".mp4") || file.type === "video/mp4";
 }
 
 function getFfmpegPaths(): FfmpegAssetPaths {
@@ -99,7 +94,11 @@ export function initializeApp(root: HTMLDivElement): void {
       <section class="panel controls-panel">
         <article class="input-column">
           <label class="file-picker">
-            <input id="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
+            <input id="file-input" class="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
+            <span class="file-picker-ui">
+              <span class="file-picker-button">Choose video (.mp4)</span>
+              <span id="file-name" class="file-name">No file chosen</span>
+            </span>
           </label>
           <div id="input-skeleton" class="preview-skeleton">
             <div class="skeleton-frame"></div>
@@ -145,6 +144,7 @@ export function initializeApp(root: HTMLDivElement): void {
   const inputSkeleton = root.querySelector<HTMLElement>("#input-skeleton");
   const inputPreviewWrap = root.querySelector<HTMLElement>("#input-preview-wrap");
   const inputPreview = root.querySelector<HTMLVideoElement>("#input-preview");
+  const fileName = root.querySelector<HTMLElement>("#file-name");
   const inputSummary = root.querySelector<HTMLElement>("#input-summary");
   const errorMessage = root.querySelector<HTMLElement>("#error-message");
   const outputSkeleton = root.querySelector<HTMLElement>("#output-skeleton");
@@ -162,6 +162,7 @@ export function initializeApp(root: HTMLDivElement): void {
     !inputSkeleton ||
     !inputPreviewWrap ||
     !inputPreview ||
+    !fileName ||
     !inputSummary ||
     !errorMessage ||
     !outputSkeleton ||
@@ -233,6 +234,7 @@ export function initializeApp(root: HTMLDivElement): void {
     const inputDuration = state.metadata
       ? formatDuration(state.metadata.duration)
       : "-";
+    fileName.textContent = state.file?.name ?? "No file chosen";
     const showInputPreview = state.inputPreviewUrl !== null;
     inputSummary.textContent = `${inputSize} / ${inputDimensions} / ${inputDuration}`;
     inputSummary.hidden = state.file === null;
@@ -339,7 +341,7 @@ export function initializeApp(root: HTMLDivElement): void {
       state.metadata = null;
       state.scaleFilter = null;
       state.conversionState = "error";
-      state.errorMessage = "Unsupported file type. Use MP4, WebM, MOV, or another browser-readable video.";
+      state.errorMessage = "Unsupported file type. Use an MP4 video.";
       render();
       return;
     }

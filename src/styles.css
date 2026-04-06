@@ -128,16 +128,44 @@ button:disabled {
 
 .file-picker {
   display: grid;
-  gap: 0.6rem;
   font-weight: 600;
 }
 
-.file-picker input {
+.file-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.file-picker-ui {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
   width: 100%;
   padding: 1rem 1.1rem;
   border: 1px dashed rgba(20, 34, 31, 0.26);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.5);
+}
+
+.file-picker-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 12px;
+  background: rgba(20, 34, 31, 0.08);
+  white-space: nowrap;
+}
+
+.file-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .actions {
