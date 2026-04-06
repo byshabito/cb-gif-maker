@@ -112,21 +112,18 @@ button:disabled {
   box-shadow: var(--shadow);
 }
 
-.controls-panel,
-.info-grid {
-  display: grid;
-  gap: 1rem;
-}
-
 .controls-panel {
+  display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  align-items: end;
+  gap: 1rem;
+  align-items: start;
 }
 
 .file-picker {
   display: grid;
   gap: 0.6rem;
   font-weight: 600;
+  margin-bottom: 1.2rem;
 }
 
 .file-picker input {
@@ -144,32 +141,16 @@ button:disabled {
   justify-content: flex-end;
 }
 
-.info-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.meta-list {
-  margin: 0;
+.controls-panel article {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.9rem;
+  align-content: start;
 }
 
-.meta-list div {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid rgba(20, 34, 31, 0.08);
-}
-
-.meta-list dt {
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-
-.meta-list dd {
+.input-summary {
   margin: 0;
-  text-align: right;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
 }
 
 .message {
@@ -195,6 +176,11 @@ button:disabled {
 
 .progress-wrap {
   margin-top: 1rem;
+}
+
+.status-actions {
+  margin-top: 1.2rem;
+  justify-content: flex-start;
 }
 
 .progress-track {
@@ -253,8 +239,7 @@ button:disabled {
 }
 
 @media (max-width: 860px) {
-  .controls-panel,
-  .info-grid {
+  .controls-panel {
     grid-template-columns: 1fr;
   }
 

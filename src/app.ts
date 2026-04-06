@@ -103,25 +103,13 @@ export function initializeApp(root: HTMLDivElement): void {
         <p class="lede">Runs entirely in your browser with ffmpeg.wasm. No uploads. No backend.</p>
       </section>
       <section class="panel controls-panel">
-        <label class="file-picker">
-          <span>Choose a video</span>
-          <input id="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
-        </label>
-        <div class="actions">
-          <button id="convert-button" class="primary" type="button" disabled>Convert to GIF</button>
-          <button id="reset-button" type="button">Reset</button>
-          <button id="reload-button" type="button" hidden>Reload engine</button>
-        </div>
-      </section>
-      <section class="panel info-grid">
         <article>
           <h2>Input</h2>
-          <dl class="meta-list">
-            <div><dt>File</dt><dd id="input-file">None selected</dd></div>
-            <div><dt>Dimensions</dt><dd id="input-dimensions">-</dd></div>
-            <div><dt>Duration</dt><dd id="input-duration">-</dd></div>
-            <div><dt>Scale rule</dt><dd id="input-scale">-</dd></div>
-          </dl>
+          <label class="file-picker">
+            <span>Choose a video</span>
+            <input id="file-input" type="file" accept="${ACCEPTED_VIDEO_TYPES}" />
+          </label>
+          <p id="input-summary" class="input-summary">- / - / -</p>
           <p id="warning-message" class="message warning" hidden></p>
           <p id="error-message" class="message error" hidden></p>
         </article>
@@ -133,6 +121,10 @@ export function initializeApp(root: HTMLDivElement): void {
               <div id="progress-bar" class="progress-bar"></div>
             </div>
             <p id="progress-label" class="progress-label">Idle</p>
+          </div>
+          <div class="actions status-actions">
+            <button id="convert-button" class="primary" type="button" disabled>Convert to GIF</button>
+            <button id="reload-button" type="button" hidden>Reload engine</button>
           </div>
         </article>
       </section>
@@ -149,12 +141,8 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const fileInput = root.querySelector<HTMLInputElement>("#file-input");
   const convertButton = root.querySelector<HTMLButtonElement>("#convert-button");
-  const resetButton = root.querySelector<HTMLButtonElement>("#reset-button");
   const reloadButton = root.querySelector<HTMLButtonElement>("#reload-button");
-  const inputFile = root.querySelector<HTMLElement>("#input-file");
-  const inputDimensions = root.querySelector<HTMLElement>("#input-dimensions");
-  const inputDuration = root.querySelector<HTMLElement>("#input-duration");
-  const inputScale = root.querySelector<HTMLElement>("#input-scale");
+  const inputSummary = root.querySelector<HTMLElement>("#input-summary");
   const warningMessage = root.querySelector<HTMLElement>("#warning-message");
   const errorMessage = root.querySelector<HTMLElement>("#error-message");
   const statusMessage = root.querySelector<HTMLElement>("#status-message");
@@ -168,12 +156,8 @@ export function initializeApp(root: HTMLDivElement): void {
   if (
     !fileInput ||
     !convertButton ||
-    !resetButton ||
     !reloadButton ||
-    !inputFile ||
-    !inputDimensions ||
-    !inputDuration ||
-    !inputScale ||
+    !inputSummary ||
     !warningMessage ||
     !errorMessage ||
     !statusMessage ||
@@ -195,22 +179,15 @@ export function initializeApp(root: HTMLDivElement): void {
     state.result = null;
   };
 
-  const resetState = () => {
-    clearResult();
-    Object.assign(state, initialState());
-    fileInput.value = "";
-    render();
-  };
-
   const render = () => {
-    inputFile.textContent = state.file?.name ?? "None selected";
-    inputDimensions.textContent = state.metadata
+    const dimensions = state.metadata
       ? `${state.metadata.width} × ${state.metadata.height}`
       : "-";
-    inputDuration.textContent = state.metadata
+    const duration = state.metadata
       ? formatDuration(state.metadata.duration)
       : "-";
-    inputScale.textContent = state.scaleFilter ?? "-";
+    const scale = state.scaleFilter ?? "-";
+    inputSummary.textContent = `${dimensions} / ${duration} / ${scale}`;
 
     warningMessage.hidden = !state.warningMessage;
     warningMessage.textContent = state.warningMessage;
@@ -250,7 +227,6 @@ export function initializeApp(root: HTMLDivElement): void {
 
     convertButton.disabled = !canConvert;
     fileInput.disabled = state.isBusy;
-    resetButton.disabled = state.isBusy;
     reloadButton.disabled = state.isBusy;
   };
 
@@ -390,7 +366,9 @@ export function initializeApp(root: HTMLDivElement): void {
     const file = fileInput.files?.[0];
 
     if (!file) {
-      resetState();
+      clearResult();
+      Object.assign(state, initialState());
+      render();
       return;
     }
 
@@ -399,10 +377,6 @@ export function initializeApp(root: HTMLDivElement): void {
 
   convertButton.addEventListener("click", async () => {
     await runConversion();
-  });
-
-  resetButton.addEventListener("click", () => {
-    resetState();
   });
 
   reloadButton.addEventListener("click", async () => {
