@@ -88,7 +88,7 @@ export function initializeApp(root: HTMLDivElement): void {
   root.innerHTML = `
     <main class="shell">
       <section class="hero">
-        <p class="eyebrow">Video → GIF</p>
+        <p class="eyebrow">MP4 → GIF</p>
         <h1>Convert your favourite clips to a CB emoticon</h1>
         <p class="lede">Turn your clip into an animated GIF optimised for Chaturbate.</p>
       </section>
