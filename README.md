@@ -32,10 +32,13 @@ npm run preview
 ## GitHub Pages
 
 This repo includes `.github/workflows/deploy.yml` for the standard GitHub Pages Actions deployment flow.
+The production URL for this project site is `https://shabito.net/cb-gif-maker/`.
 
 1. Push to `main`.
 2. In the repository settings, open Pages.
 3. Set **Build and deployment** to **GitHub Actions**.
+4. Do not set `shabito.net` as the custom domain for this repository. The domain should stay attached to the `byshabito.github.io` user site so this repo is served from `/cb-gif-maker/`.
+5. If the old PAT-based deployment is no longer used anywhere else, remove the `PAGES_DEPLOY_PAT` repository secret.
 
 ## Browser limitations
 
