@@ -22,9 +22,13 @@ import type {
 const ACCEPTED_VIDEO_TYPES = ".mp4,video/mp4";
 const TRIM_STEP = 0.1;
 const MIN_TRIM_SPAN = 0.1;
+const PREVIEW_LOOP_EPSILON = 0.05;
+
+type EngineState = "idle" | "loading" | "ready" | "error";
 
 type AppState = {
   conversionState: ConversionState;
+  engineState: EngineState;
   file: File | null;
   metadata: InputMetadata | null;
   scaleFilter: ScaleFilter | null;
@@ -38,6 +42,7 @@ type AppState = {
 
 const initialState = (): AppState => ({
   conversionState: "idle",
+  engineState: "idle",
   file: null,
   metadata: null,
   scaleFilter: null,
@@ -196,6 +201,7 @@ export function initializeApp(root: HTMLDivElement): void {
               <div id="progress-bar" class="progress-bar"></div>
             </div>
           </div>
+          <p id="progress-status" class="input-summary" hidden></p>
           <div id="output-skeleton" class="status-result">
             <div class="skeleton-button"></div>
             <div class="skeleton-frame"></div>
@@ -229,6 +235,7 @@ export function initializeApp(root: HTMLDivElement): void {
   const outputSkeleton = root.querySelector<HTMLElement>("#output-skeleton");
   const progressWrap = root.querySelector<HTMLElement>("#progress-wrap");
   const progressBar = root.querySelector<HTMLElement>("#progress-bar");
+  const progressStatus = root.querySelector<HTMLElement>("#progress-status");
   const statusResult = root.querySelector<HTMLElement>("#status-result");
   const outputColumn = root.querySelector<HTMLElement>(".output-column");
   const resultMeta = root.querySelector<HTMLElement>("#result-meta");
@@ -255,6 +262,7 @@ export function initializeApp(root: HTMLDivElement): void {
     !outputSkeleton ||
     !progressWrap ||
     !progressBar ||
+    !progressStatus ||
     !statusResult ||
     !outputColumn ||
     !resultMeta ||
@@ -282,6 +290,25 @@ export function initializeApp(root: HTMLDivElement): void {
       URL.revokeObjectURL(state.inputPreviewUrl);
       state.inputPreviewUrl = null;
     }
+  };
+
+  const getProgressStatusMessage = (): string => {
+    if (state.conversionState === "converting") {
+      return "Converting clip to GIF...";
+    }
+
+    if (
+      state.conversionState === "loading-engine" ||
+      state.engineState === "loading"
+    ) {
+      return "Loading ffmpeg engine...";
+    }
+
+    if (state.engineState === "error") {
+      return "Failed to load ffmpeg engine. Try convert again.";
+    }
+
+    return "";
   };
 
   const syncMediaSource = (
@@ -384,23 +411,28 @@ export function initializeApp(root: HTMLDivElement): void {
     errorMessage.textContent = state.errorMessage;
 
     const showResult = state.result !== null;
+    const progressStatusMessage = getProgressStatusMessage();
     const showProgress =
       !showResult &&
       (state.isBusy ||
         state.progress !== null ||
         state.conversionState === "loading-engine" ||
-        state.conversionState === "converting");
-    const showOutputSkeleton = !showResult && !showProgress;
+        state.conversionState === "converting" ||
+        state.engineState === "loading");
+    const showProgressStatus = !showResult && progressStatusMessage !== "";
+    const showOutputSkeleton = !showResult && !showProgress && !showProgressStatus;
 
     outputColumn.dataset.mode = showResult
       ? "result"
-      : showProgress
+      : showProgress || showProgressStatus
         ? "progress"
         : "idle";
     outputSkeleton.hidden = !showOutputSkeleton;
     progressWrap.hidden = !showProgress;
     statusResult.hidden = !showResult;
     progressBar.style.width = `${Math.round((state.progress ?? 0) * 100)}%`;
+    progressStatus.hidden = !showProgressStatus;
+    progressStatus.textContent = progressStatusMessage;
 
     if (state.result) {
       resultPreview.hidden = false;
@@ -451,6 +483,7 @@ export function initializeApp(root: HTMLDivElement): void {
 
   const loadEngine = async (operationId: number): Promise<boolean> => {
     state.conversionState = "loading-engine";
+    state.engineState = "loading";
     state.isBusy = true;
     state.errorMessage = "";
     state.progress = null;
@@ -463,6 +496,7 @@ export function initializeApp(root: HTMLDivElement): void {
         return false;
       }
 
+      state.engineState = "ready";
       state.isBusy = false;
       state.conversionState = state.metadata ? "ready" : "idle";
       render();
@@ -472,6 +506,7 @@ export function initializeApp(root: HTMLDivElement): void {
         return false;
       }
 
+      state.engineState = "error";
       state.isBusy = false;
       state.conversionState = "error";
       state.errorMessage = `Failed to load ffmpeg engine: ${sanitizeError(error)}`;
@@ -481,15 +516,22 @@ export function initializeApp(root: HTMLDivElement): void {
   };
 
   const prepareFile = async (file: File) => {
+    const operationId = ++activeOperationId;
+    const nextEngineState = state.engineState === "ready"
+      ? "ready"
+      : "idle";
+
     clearResult();
     clearInputPreview();
     state.progress = null;
+    state.engineState = nextEngineState;
 
     if (!isSupportedVideo(file)) {
       state.file = null;
       state.metadata = null;
       state.scaleFilter = null;
       state.trimRange = null;
+      state.engineState = "idle";
       state.conversionState = "error";
       state.errorMessage = "Unsupported file type. Use an MP4 video.";
       render();
@@ -507,6 +549,11 @@ export function initializeApp(root: HTMLDivElement): void {
 
     try {
       const metadata = await readVideoMetadata(file);
+
+      if (operationId !== activeOperationId) {
+        return;
+      }
+
       state.metadata = metadata;
       state.scaleFilter = computeScaleFilter(metadata.width, metadata.height);
       state.trimRange = hasKnownDuration(metadata)
@@ -517,10 +564,16 @@ export function initializeApp(root: HTMLDivElement): void {
         : null;
       state.conversionState = "ready";
       render();
+      warmEngineInBackground(operationId);
     } catch (error) {
+      if (operationId !== activeOperationId) {
+        return;
+      }
+
       state.metadata = null;
       state.scaleFilter = null;
       state.trimRange = null;
+      state.engineState = "idle";
       state.conversionState = "error";
       state.errorMessage = sanitizeError(error);
       render();
@@ -542,8 +595,12 @@ export function initializeApp(root: HTMLDivElement): void {
       outputName: getOutputName(state.file.name)
     };
 
+    inputPreview.pause();
     clearResult();
-    const loaded = await loadEngine(operationId);
+    const loaded =
+      state.engineState === "ready"
+        ? true
+        : await loadEngine(operationId);
 
     if (!loaded || operationId !== activeOperationId || state.conversionState === "error") {
       return;
@@ -593,6 +650,7 @@ export function initializeApp(root: HTMLDivElement): void {
     activeOperationId += 1;
     converter.terminate();
     clearResult();
+    state.engineState = "idle";
     state.conversionState = state.metadata ? "ready" : "idle";
     state.errorMessage = "";
     state.isBusy = false;
@@ -608,10 +666,88 @@ export function initializeApp(root: HTMLDivElement): void {
     inputPreview.currentTime = Math.max(time, 0);
   };
 
+  const resumePreviewPlayback = () => {
+    void inputPreview.play().catch(() => {});
+  };
+
+  const warmEngineInBackground = (operationId: number) => {
+    if (state.engineState !== "ready") {
+      state.engineState = "loading";
+      render();
+    }
+
+    void converter.ensureLoaded(getFfmpegPaths())
+      .then(() => {
+        if (operationId !== activeOperationId) {
+          return;
+        }
+
+        state.engineState = "ready";
+        render();
+      })
+      .catch(() => {
+        if (operationId !== activeOperationId) {
+          return;
+        }
+
+        state.engineState = "error";
+        render();
+      });
+  };
+
+  const getActivePreviewRange = (): TrimRange | null => {
+    if (
+      !hasKnownDuration(state.metadata) ||
+      state.trimRange === null ||
+      state.metadata.duration < MIN_TRIM_SPAN
+    ) {
+      return null;
+    }
+
+    return state.trimRange;
+  };
+
+  const getLoopEndThreshold = (endTime: number): number => {
+    return Math.max(endTime - PREVIEW_LOOP_EPSILON, 0);
+  };
+
+  const seekPreviewToLoopStart = (range: TrimRange) => {
+    seekPreview(range.startTime);
+  };
+
+  const enforcePreviewBounds = (
+    options: { restartPlayback: boolean } = { restartPlayback: false }
+  ) => {
+    const range = getActivePreviewRange();
+
+    if (!range) {
+      return;
+    }
+
+    const loopEndThreshold = Math.max(
+      getLoopEndThreshold(range.endTime),
+      range.startTime
+    );
+    let didSeek = false;
+
+    if (inputPreview.currentTime < range.startTime) {
+      seekPreviewToLoopStart(range);
+      didSeek = true;
+    } else if (inputPreview.currentTime >= loopEndThreshold) {
+      seekPreviewToLoopStart(range);
+      didSeek = true;
+    }
+
+    if (didSeek && options.restartPlayback && !inputPreview.paused) {
+      resumePreviewPlayback();
+    }
+  };
+
   fileInput.addEventListener("change", async () => {
     const file = fileInput.files?.[0];
 
     if (!file) {
+      activeOperationId += 1;
       clearResult();
       clearInputPreview();
       Object.assign(state, initialState());
@@ -628,6 +764,37 @@ export function initializeApp(root: HTMLDivElement): void {
 
   cancelButton.addEventListener("click", () => {
     cancelConversion();
+  });
+
+  inputPreview.addEventListener("play", () => {
+    enforcePreviewBounds({ restartPlayback: false });
+  });
+
+  inputPreview.addEventListener("timeupdate", () => {
+    if (inputPreview.paused) {
+      return;
+    }
+
+    enforcePreviewBounds({ restartPlayback: true });
+  });
+
+  inputPreview.addEventListener("seeking", () => {
+    if (inputPreview.paused) {
+      return;
+    }
+
+    enforcePreviewBounds({ restartPlayback: true });
+  });
+
+  inputPreview.addEventListener("ended", () => {
+    const range = getActivePreviewRange();
+
+    if (!range) {
+      return;
+    }
+
+    seekPreviewToLoopStart(range);
+    resumePreviewPlayback();
   });
 
   trimStartInput.addEventListener("input", () => {
@@ -649,6 +816,9 @@ export function initializeApp(root: HTMLDivElement): void {
     clearResult();
     state.conversionState = "ready";
     seekPreview(startTime);
+    if (!inputPreview.paused) {
+      resumePreviewPlayback();
+    }
     render();
   });
 
@@ -670,7 +840,10 @@ export function initializeApp(root: HTMLDivElement): void {
     };
     clearResult();
     state.conversionState = "ready";
-    seekPreview(Math.min(endTime, Math.max(state.metadata.duration - 0.05, 0)));
+    seekPreview(Math.min(endTime, Math.max(state.metadata.duration - PREVIEW_LOOP_EPSILON, 0)));
+    if (!inputPreview.paused) {
+      resumePreviewPlayback();
+    }
     render();
   });
 
