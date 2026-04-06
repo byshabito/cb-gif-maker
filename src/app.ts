@@ -88,9 +88,9 @@ export function initializeApp(root: HTMLDivElement): void {
   root.innerHTML = `
     <main class="shell">
       <section class="hero">
-        <p class="eyebrow">CbGifTool</p>
-        <h1>Local video to GIF conversion in the browser.</h1>
-        <p class="lede">Runs entirely in your browser with ffmpeg.wasm. No uploads. No backend.</p>
+        <p class="eyebrow">Video → GIF</p>
+        <h1>Convert a video to a CB emoticon GIF</h1>
+        <p class="lede">Turns your MP4 into an animated GIF for CB emoticons.</p>
       </section>
       <section class="panel controls-panel">
         <article class="input-column">
