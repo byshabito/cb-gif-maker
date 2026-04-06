@@ -183,6 +183,12 @@ button:disabled {
   justify-content: flex-start;
 }
 
+.status-result {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+
 .progress-track {
   overflow: hidden;
   height: 14px;
@@ -216,11 +222,6 @@ button:disabled {
   margin: 0;
 }
 
-.result-panel {
-  display: grid;
-  gap: 1rem;
-}
-
 .result-preview {
   width: min(100%, 520px);
   max-height: 380px;
@@ -228,6 +229,14 @@ button:disabled {
   border-radius: 18px;
   border: 1px solid rgba(20, 34, 31, 0.12);
   background: linear-gradient(135deg, rgba(95, 155, 137, 0.12), rgba(191, 93, 53, 0.12));
+}
+
+.result-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .download-link {

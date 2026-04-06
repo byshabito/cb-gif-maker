@@ -116,25 +116,24 @@ export function initializeApp(root: HTMLDivElement): void {
         <article>
           <h2>Status</h2>
           <p id="status-message" class="status-text">${state.statusMessage}</p>
-          <div class="progress-wrap">
+          <div id="progress-wrap" class="progress-wrap" hidden>
             <div class="progress-track">
               <div id="progress-bar" class="progress-bar"></div>
             </div>
             <p id="progress-label" class="progress-label">Idle</p>
+          </div>
+          <div id="status-result" class="status-result" hidden>
+            <img id="result-preview" class="result-preview" alt="Generated GIF preview" />
+            <div class="result-toolbar">
+              <span id="result-meta" class="caption"></span>
+              <a id="download-link" class="primary download-link" download="">Download GIF</a>
+            </div>
           </div>
           <div class="actions status-actions">
             <button id="convert-button" class="primary" type="button" disabled>Convert to GIF</button>
             <button id="reload-button" type="button" hidden>Reload engine</button>
           </div>
         </article>
-      </section>
-      <section id="result-panel" class="panel result-panel" hidden>
-        <div class="section-heading">
-          <h2>Result</h2>
-          <span id="result-meta" class="caption"></span>
-        </div>
-        <img id="result-preview" class="result-preview" alt="Generated GIF preview" />
-        <a id="download-link" class="primary download-link" download="">Download GIF</a>
       </section>
     </main>
   `;
@@ -146,9 +145,10 @@ export function initializeApp(root: HTMLDivElement): void {
   const warningMessage = root.querySelector<HTMLElement>("#warning-message");
   const errorMessage = root.querySelector<HTMLElement>("#error-message");
   const statusMessage = root.querySelector<HTMLElement>("#status-message");
+  const progressWrap = root.querySelector<HTMLElement>("#progress-wrap");
   const progressBar = root.querySelector<HTMLElement>("#progress-bar");
   const progressLabel = root.querySelector<HTMLElement>("#progress-label");
-  const resultPanel = root.querySelector<HTMLElement>("#result-panel");
+  const statusResult = root.querySelector<HTMLElement>("#status-result");
   const resultMeta = root.querySelector<HTMLElement>("#result-meta");
   const resultPreview = root.querySelector<HTMLImageElement>("#result-preview");
   const downloadLink = root.querySelector<HTMLAnchorElement>("#download-link");
@@ -161,9 +161,10 @@ export function initializeApp(root: HTMLDivElement): void {
     !warningMessage ||
     !errorMessage ||
     !statusMessage ||
+    !progressWrap ||
     !progressBar ||
     !progressLabel ||
-    !resultPanel ||
+    !statusResult ||
     !resultMeta ||
     !resultPreview ||
     !downloadLink
@@ -194,13 +195,22 @@ export function initializeApp(root: HTMLDivElement): void {
     errorMessage.hidden = !state.errorMessage;
     errorMessage.textContent = state.errorMessage;
     statusMessage.textContent = state.statusMessage;
+
+    const showResult = state.result !== null;
+    const showProgress =
+      !showResult &&
+      (state.isBusy ||
+        state.progress !== null ||
+        state.conversionState === "loading-engine" ||
+        state.conversionState === "converting");
+
+    progressWrap.hidden = !showProgress;
+    statusResult.hidden = !showResult;
     progressBar.style.width = `${Math.round((state.progress ?? 0) * 100)}%`;
     progressLabel.textContent =
       state.progress === null
         ? state.conversionState
         : `${Math.round(state.progress * 100)}%`;
-
-    resultPanel.hidden = !state.result;
 
     if (state.result) {
       resultPreview.src = state.result.objectUrl;
