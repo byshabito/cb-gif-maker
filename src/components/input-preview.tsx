@@ -41,7 +41,7 @@ export function InputPreview({
   const hasTrim = hasKnownDuration(metadata) && trimRange !== null;
 
   return (
-    <Card className="border-foreground/10 bg-white/80 shadow-[0_18px_50px_rgba(57,43,16,0.08)] backdrop-blur">
+    <Card size="sm" className="flex min-h-0 flex-col">
       <CardHeader className="gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -52,22 +52,18 @@ export function InputPreview({
           </div>
           <div className="flex flex-wrap gap-2">
             {summaryChips.map((chip, index) => (
-              <Badge
-                className="bg-background/80"
-                key={`${chip}-${index}`}
-                variant="outline"
-              >
+              <Badge key={`${chip}-${index}`} variant="outline">
                 {chip}
               </Badge>
             ))}
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="relative overflow-hidden border border-border/70 bg-muted/50">
+      <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
+        <div className="relative overflow-hidden border">
           {inputPreviewUrl ? (
             <video
-              className="aspect-video w-full bg-[#16130f] object-contain"
+              className="aspect-video w-full object-contain"
               controls
               muted
               onEnded={onPreviewEnded}
@@ -80,12 +76,10 @@ export function InputPreview({
               src={inputPreviewUrl}
             />
           ) : (
-            <div className="flex aspect-video flex-col items-center justify-center gap-3 bg-[linear-gradient(135deg,rgba(203,115,62,0.08),rgba(88,147,127,0.12))] text-center">
-              <Film className="size-8 text-primary/80" />
+            <div className="flex aspect-video flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+              <Film className="size-6" />
               <div className="space-y-1">
-                <p className="font-heading text-sm font-medium">
-                  Drop in a source clip
-                </p>
+                <p className="font-heading text-sm font-medium">Drop in a source clip</p>
                 <p className="max-w-xs text-xs text-muted-foreground">
                   The selected video stays local and becomes the live trim preview.
                 </p>
@@ -94,33 +88,31 @@ export function InputPreview({
           )}
         </div>
         <Separator />
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="border border-border/70 bg-background/70 p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+        <div className="grid gap-2 md:grid-cols-3">
+          <div className="border p-2.5">
+            <div className="mb-2 flex items-center gap-2 text-muted-foreground">
               <Film className="size-3.5" />
               Source
             </div>
-            <p className="line-clamp-2 text-sm text-foreground">
-              {file?.name ?? "No file chosen"}
-            </p>
+            <p className="line-clamp-2 text-sm">{file?.name ?? "No file chosen"}</p>
           </div>
-          <div className="border border-border/70 bg-background/70 p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="border p-2.5">
+            <div className="mb-2 flex items-center gap-2 text-muted-foreground">
               <Scissors className="size-3.5" />
               Trim
             </div>
-            <p className="text-sm text-foreground">
+            <p className="text-sm">
               {hasTrim
                 ? `${trimRange.startTime.toFixed(1)}s → ${trimRange.endTime.toFixed(1)}s`
                 : "Full duration"}
             </p>
           </div>
-          <div className="border border-border/70 bg-background/70 p-3">
-            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+          <div className="border p-2.5">
+            <div className="mb-2 flex items-center gap-2 text-muted-foreground">
               <Sparkles className="size-3.5" />
               Output rule
             </div>
-            <p className="text-sm text-foreground">
+            <p className="text-sm">
               {metadata
                 ? metadata.width * 80 > metadata.height * 250
                   ? "Scale to 250px wide"

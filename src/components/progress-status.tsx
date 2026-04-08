@@ -17,13 +17,13 @@ export function ProgressStatus({
   }
 
   return (
-    <div className="space-y-3 border border-border/70 bg-background/70 p-4">
-      <div className="flex items-center gap-2 text-sm text-foreground">
-        <LoaderCircle className="size-4 animate-spin text-primary" />
+    <div className="space-y-2 border p-3">
+      <div className="flex items-center gap-2 text-xs">
+        <LoaderCircle className="size-4 animate-spin" />
         <span>{message}</span>
       </div>
       <Progress value={Math.round((progress ?? 0) * 100)} />
-      <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         {Math.round((progress ?? 0) * 100)}% complete
       </p>
     </div>

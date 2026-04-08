@@ -151,10 +151,10 @@ describe("App", () => {
     render(<App />);
 
     expect(
-      screen.getByText(/Convert clips into sharp CB-ready GIFs/i)
+      screen.getByText(/Convert your clips into CB-ready GIFs/i)
     ).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
-    expect(screen.getByText("GIF preview appears here")).toBeTruthy();
+    expect(screen.getByText("Video preview")).toBeTruthy();
   });
 
   it("loads metadata for a valid mp4 and enables conversion", async () => {

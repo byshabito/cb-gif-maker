@@ -15,35 +15,29 @@ export function OutputPreview({ fileName, result }: OutputPreviewProps) {
     : "output.gif";
 
   return (
-    <Card className="border-foreground/10 bg-white/80 shadow-[0_18px_50px_rgba(57,43,16,0.08)] backdrop-blur">
+    <Card size="sm" className="flex min-h-0 flex-col">
       <CardHeader>
         <CardTitle>Output</CardTitle>
         <CardDescription>
           Preview the final GIF and export it directly.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex min-h-0 flex-1 flex-col space-y-3">
         {result ? (
           <>
-            <div className="overflow-hidden border border-border/70 bg-muted/50">
+            <div className="overflow-hidden border">
               <img
                 alt="Generated GIF preview"
-                className="aspect-video w-full bg-[#16130f] object-contain"
+                className="aspect-video w-full object-contain"
                 src={result.objectUrl}
               />
             </div>
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-2 md:grid-cols-3">
               <Metric label="Size" value={formatBytes(result.bytes)} />
-              <Metric
-                label="Frame"
-                value={`${result.width} × ${result.height}`}
-              />
-              <Metric
-                label="Duration"
-                value={formatDuration(result.duration)}
-              />
+              <Metric label="Frame" value={`${result.width} × ${result.height}`} />
+              <Metric label="Duration" value={formatDuration(result.duration)} />
             </div>
-            <Button asChild className="w-full" size="lg">
+            <Button asChild className="w-full" size="default">
               <a download={downloadName} href={result.objectUrl}>
                 <Download />
                 Download GIF
@@ -51,15 +45,13 @@ export function OutputPreview({ fileName, result }: OutputPreviewProps) {
             </Button>
           </>
         ) : (
-          <div className="flex min-h-80 flex-col items-center justify-center gap-4 border border-dashed border-foreground/15 bg-[linear-gradient(135deg,rgba(203,115,62,0.08),rgba(88,147,127,0.12))] p-8 text-center">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 border p-4 text-center">
             <div className="relative">
-              <ImagePlay className="size-10 text-primary/80" />
-              <Sparkles className="absolute -right-2 -top-2 size-4 text-emerald-600" />
+              <ImagePlay className="size-8" />
+              <Sparkles className="absolute -right-2 -top-2 size-4" />
             </div>
             <div className="space-y-1">
-              <p className="font-heading text-sm font-medium text-foreground">
-                GIF preview appears here
-              </p>
+              <p className="font-heading text-sm font-medium">GIF preview appears here</p>
               <p className="max-w-xs text-xs text-muted-foreground">
                 Once conversion finishes, this pane becomes the final download surface.
               </p>
@@ -73,11 +65,11 @@ export function OutputPreview({ fileName, result }: OutputPreviewProps) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-border/70 bg-background/70 p-3">
-      <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-2 text-sm text-foreground">{value}</p>
-    </div>
+    <Card size="sm">
+      <CardContent className="space-y-1">
+        <p className="text-muted-foreground">{label}</p>
+        <p>{value}</p>
+      </CardContent>
+    </Card>
   );
 }

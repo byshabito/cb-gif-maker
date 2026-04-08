@@ -570,6 +570,7 @@ export function useGifMaker() {
     accessibleConvertButtonLabel,
     canConvert,
     convertButtonLabel,
+    clearResult,
     previewRef,
     progressStatusMessage,
     selectFile,

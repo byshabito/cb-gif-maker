@@ -21,19 +21,6 @@ type ConversionActionsProps = {
   onConvert: () => void;
 };
 
-function getEngineBadgeClassName(engineState: EngineState) {
-  switch (engineState) {
-    case "ready":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700";
-    case "loading":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-700";
-    case "error":
-      return "border-destructive/30 bg-destructive/10 text-destructive";
-    case "idle":
-      return "border-border/80 bg-background/70 text-muted-foreground";
-  }
-}
-
 export function ConversionActions({
   accessibleLabel,
   canConvert,
@@ -50,7 +37,7 @@ export function ConversionActions({
     : "Choose a clip first to enable the render.";
 
   return (
-    <Card className="border-foreground/10 bg-white/80 shadow-[0_18px_50px_rgba(57,43,16,0.08)] backdrop-blur">
+    <Card size="sm">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -59,10 +46,7 @@ export function ConversionActions({
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge
-                className={getEngineBadgeClassName(engineState)}
-                variant="outline"
-              >
+              <Badge variant="outline">
                 {getEngineLabel(engineState)}
               </Badge>
             </TooltipTrigger>
@@ -72,13 +56,13 @@ export function ConversionActions({
           </Tooltip>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3">
         <Button
           aria-label={accessibleLabel}
-          className="h-12 w-full text-sm"
+          className="w-full"
           disabled={!canConvert}
           onClick={onConvert}
-          size="lg"
+          size="default"
           type="button"
         >
           <WandSparkles />
@@ -94,7 +78,7 @@ export function ConversionActions({
           <CircleSlash2 />
           Cancel
         </Button>
-        <div className="border border-border/70 bg-background/70 p-3 text-xs text-muted-foreground">
+        <div className="border p-2.5 text-xs text-muted-foreground">
           Status: <span className="text-foreground">{conversionState}</span>
         </div>
       </CardContent>

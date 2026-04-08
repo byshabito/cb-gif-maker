@@ -28,7 +28,7 @@ export function TrimControls({
   }
 
   return (
-    <Card className="border-foreground/10 bg-white/80 shadow-[0_18px_50px_rgba(57,43,16,0.08)] backdrop-blur">
+    <Card size="sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Scissors className="size-4" />
@@ -38,8 +38,8 @@ export function TrimControls({
           Keep the strongest moment. The preview will loop inside the selected span.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="border border-border/70 bg-background/70 p-4">
+      <CardContent className="space-y-3">
+        <div className="border p-3">
           <Slider
             aria-label="Trim range"
             disabled={isBusy}
@@ -50,32 +50,22 @@ export function TrimControls({
             value={[trimRange.startTime, trimRange.endTime]}
           />
         </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="border border-border/70 bg-background/70 p-3">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              Start
-            </p>
-            <p className="mt-2 text-lg font-medium text-foreground">
-              {formatTrimTimestamp(trimRange.startTime)}
-            </p>
-          </div>
-          <div className="border border-border/70 bg-background/70 p-3">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              End
-            </p>
-            <p className="mt-2 text-lg font-medium text-foreground">
-              {formatTrimTimestamp(trimRange.endTime)}
-            </p>
-          </div>
-          <div className="border border-border/70 bg-background/70 p-3">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-              Selected
-            </p>
-            <p className="mt-2 text-lg font-medium text-foreground">
-              {formatTrimTimestamp(trimDuration)}
-            </p>
-          </div>
+        <div className="grid gap-2 md:grid-cols-3">
+          <TrimMetric label="Start" value={formatTrimTimestamp(trimRange.startTime)} />
+          <TrimMetric label="End" value={formatTrimTimestamp(trimRange.endTime)} />
+          <TrimMetric label="Selected" value={formatTrimTimestamp(trimDuration)} />
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TrimMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <Card size="sm">
+      <CardContent className="space-y-1">
+        <p className="text-muted-foreground">{label}</p>
+        <p>{value}</p>
       </CardContent>
     </Card>
   );
