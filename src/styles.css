@@ -93,7 +93,7 @@
 
   body {
     @apply min-w-[320px] antialiased bg-background text-foreground;
-    font-family: "Sora", "IBM Plex Sans", "Segoe UI", sans-serif;
+    font-family: "IBM Plex Sans Variable", "Segoe UI", sans-serif;
     background:
       radial-gradient(circle at top left, rgba(255, 179, 136, 0.34), transparent 30%),
       radial-gradient(circle at top right, rgba(104, 186, 154, 0.2), transparent 24%),
