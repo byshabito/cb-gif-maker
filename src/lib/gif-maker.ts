@@ -9,12 +9,6 @@ export const ACCEPTED_VIDEO_TYPES = ".mp4,video/mp4";
 export const TRIM_STEP = 0.1;
 export const MIN_TRIM_SPAN = 0.1;
 export const PREVIEW_LOOP_EPSILON = 0.05;
-export const CONVERTING_FRAMES = [
-  "Converting",
-  "Converting.",
-  "Converting..",
-  "Converting...",
-] as const;
 
 export type EngineState = "idle" | "loading" | "ready" | "error";
 

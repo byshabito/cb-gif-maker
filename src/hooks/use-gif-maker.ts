@@ -9,7 +9,6 @@ import {
 import { readVideoMetadata } from "@/video/metadata";
 import type { ConversionJob, ConversionResult, TrimRange } from "@/types";
 import {
-  CONVERTING_FRAMES,
   MIN_TRIM_SPAN,
   PREVIEW_LOOP_EPSILON,
   createInitialState,
@@ -30,7 +29,6 @@ export function useGifMaker() {
   const converterRef = useRef<BrowserGifConverter | null>(null);
   const operationIdRef = useRef(0);
   const previewRef = useRef<HTMLVideoElement | null>(null);
-  const [convertingFrameIndex, setConvertingFrameIndex] = useState(0);
 
   if (!converterRef.current) {
     converterRef.current = createConverter();
@@ -518,33 +516,16 @@ export function useGifMaker() {
     };
   }, []);
 
-  useEffect(() => {
-    if (state.conversionState !== "converting") {
-      setConvertingFrameIndex(0);
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setConvertingFrameIndex((currentIndex) => {
-        return (currentIndex + 1) % CONVERTING_FRAMES.length;
-      });
-    }, 400);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [state.conversionState]);
-
   const convertButtonLabel = useMemo(() => {
     switch (state.conversionState) {
       case "loading-engine":
         return "Preparing...";
       case "converting":
-        return CONVERTING_FRAMES[convertingFrameIndex];
+        return "Converting...";
       default:
         return "Convert to GIF";
     }
-  }, [convertingFrameIndex, state.conversionState]);
+  }, [state.conversionState]);
 
   const accessibleConvertButtonLabel = useMemo(() => {
     switch (state.conversionState) {

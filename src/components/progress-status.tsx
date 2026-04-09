@@ -17,7 +17,7 @@ export function ProgressStatus({
   }
 
   return (
-    <div className="space-y-2 border p-3">
+    <div className="space-y-2 p-3">
       <div className="flex items-center gap-2 text-xs">
         <LoaderCircle className="size-4 animate-spin" />
         <span>{message}</span>

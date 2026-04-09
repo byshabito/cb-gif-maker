@@ -27,6 +27,7 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
+  DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -40,6 +41,15 @@ import {
   hasKnownDuration,
 } from "@/lib/gif-maker";
 import { Field, FieldDescription, FieldLabel } from "./ui/field";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 export function GifMakerShell() {
   const {
@@ -88,27 +98,25 @@ export function GifMakerShell() {
     <main className="flex h-dvh items-center justify-center overflow-hidden p-4">
       <div>
         <h1>GIF It!</h1>
+        <h2>Convert your clips into CB-ready GIFs</h2>
 
-        <Card className="flex h-full max-h-225 w-full max-w-7xl flex-col">
-          <CardHeader className="pb-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <CardTitle className="text-xl">
-                    Convert your clips into CB-ready GIFs.
-                  </CardTitle>
-                  <CardDescription>
-                    Upload, trim, convert, and download without leaving the
-                    page.
-                  </CardDescription>
-                </div>
-              </div>
-              <div>
-                <Badge variant="outline">How to use</Badge>
-                <Badge variant="outline">How to upload to CB</Badge>
-              </div>
+        <Drawer direction="right">
+          <DrawerTrigger asChild>
+            <Button variant="secondary">How do I upload GIFs on CB?</Button>
+          </DrawerTrigger>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>How do I upload GIFs on CB?</DrawerTitle>
+            </DrawerHeader>
+            <div className="no-scrollbar overflow-y-auto px-4 h-full">
+              Just di it
             </div>
-          </CardHeader>
+            <DrawerClose asChild>
+              <Button variant="ghost">Close</Button>
+            </DrawerClose>
+          </DrawerContent>
+        </Drawer>
+        <Card className="flex h-full max-h-225 w-full max-w-7xl flex-col">
           <CardContent className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)_16rem] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
             <Field className="lg:col-start-1 lg:row-start-1 lg:row-span-3">
               <FieldLabel htmlFor="video">Select your video clip</FieldLabel>
@@ -124,13 +132,11 @@ export function GifMakerShell() {
                 type="file"
               />
               <FieldDescription className="flex flex-col justify-between h-full">
-                {state.file ? (
-                  <div>
-                    {fileSummary} / {dimensionSummary} / {durationSummary}
-                  </div>
-                ) : (
-                  <div>Supported: {ACCEPTED_VIDEO_TYPES}</div>
-                )}
+                <div className="mb-2">
+                  {state.file
+                    ? `${fileSummary} / ${dimensionSummary} / ${durationSummary}`
+                    : `Supported: ${ACCEPTED_VIDEO_TYPES}`}
+                </div>
                 {state.errorMessage ? (
                   <Alert variant="destructive">
                     <AlertCircle />
@@ -138,12 +144,13 @@ export function GifMakerShell() {
                     <AlertDescription>{state.errorMessage}</AlertDescription>
                   </Alert>
                 ) : null}
-                <ProgressStatus
-                  message={progressStatusMessage}
-                  progress={state.progress}
-                  show={showProgress && progressStatusMessage !== ""}
-                />
+
                 <div>
+                  <ProgressStatus
+                    message={progressStatusMessage}
+                    progress={state.progress}
+                    show={showProgress && progressStatusMessage !== ""}
+                  />
                   <Button
                     aria-label={accessibleConvertButtonLabel}
                     className="w-full"
@@ -262,9 +269,7 @@ export function GifMakerShell() {
           </CardContent>
         </Card>
 
-        <Drawer
-          direction="bottom"
-          modal
+        <Dialog
           onOpenChange={(open) => {
             if (!open && state.result) {
               clearResult();
@@ -272,49 +277,26 @@ export function GifMakerShell() {
           }}
           open={Boolean(state.result)}
         >
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Finished GIF</DrawerTitle>
-              <DrawerDescription>
-                Review the result, download it, or discard it and keep editing.
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="px-4 pb-2">
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Your GIF is ready!</DialogTitle>
+
               {state.result ? (
-                <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_18rem]">
-                  <div className="overflow-hidden border">
-                    <img
-                      alt="Generated GIF preview"
-                      className="aspect-video w-full object-contain"
-                      src={state.result.objectUrl}
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="border p-3 text-xs text-muted-foreground">
-                      <p>
-                        Size:{" "}
-                        <span className="text-foreground">
-                          {formatBytes(state.result.bytes)}
-                        </span>
-                      </p>
-                      <p>
-                        Frame:{" "}
-                        <span className="text-foreground">
-                          {state.result.width} × {state.result.height}
-                        </span>
-                      </p>
-                      <p>
-                        Duration:{" "}
-                        <span className="text-foreground">
-                          {formatDuration(state.result.duration)}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <DialogDescription>
+                  {formatBytes(state.result.bytes)} / {state.result.width} ×{" "}
+                  {state.result.height} /{" "}
+                  {formatDuration(state.result.duration)}
+                </DialogDescription>
               ) : null}
-            </div>
-            <DrawerFooter className="sm:flex-row">
+            </DialogHeader>
+            {state.result ? (
+              <img
+                alt="Generated GIF preview"
+                className="aspect-video w-full object-contain"
+                src={state.result.objectUrl}
+              />
+            ) : null}
+            <DialogFooter>
               {state.result ? (
                 <Button asChild className="sm:flex-1">
                   <a download={downloadName} href={state.result.objectUrl}>
@@ -323,14 +305,15 @@ export function GifMakerShell() {
                   </a>
                 </Button>
               ) : null}
-              <DrawerClose asChild>
+
+              <DialogClose asChild>
                 <Button onClick={clearResult} type="button" variant="outline">
                   Discard
                 </Button>
-              </DrawerClose>
-            </DrawerFooter>
-          </DrawerContent>
-        </Drawer>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </main>
   );
