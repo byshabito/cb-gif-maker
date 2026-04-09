@@ -245,7 +245,7 @@ export function GifMakerShell() {
                     value={[state.trimRange.startTime, state.trimRange.endTime]}
                   />
                   <div className="flex flex-row justify-between w-full">
-                    <Badge variant="outline">
+                    <Badge variant="ghost">
                       {state.trimRange
                         ? formatTrimTimestamp(state.trimRange.startTime)
                         : "--"}
@@ -255,7 +255,7 @@ export function GifMakerShell() {
                         ? formatTrimTimestamp(trimDuration)
                         : "--"}
                     </Badge>
-                    <Badge variant="outline">
+                    <Badge variant="ghost">
                       {state.trimRange
                         ? formatTrimTimestamp(state.trimRange.endTime)
                         : "--"}
