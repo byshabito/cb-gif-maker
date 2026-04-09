@@ -98,7 +98,7 @@ export function Shell() {
     <main className="flex h-dvh items-center justify-center overflow-hidden p-4">
       <div>
         <h1>GIF It!</h1>
-        <h2>Convert your clips into GIFs.</h2>
+        <h2>Convert your clips to CB-ready GIFs locally.</h2>
 
         <Drawer direction="right">
           <DrawerTrigger asChild>
