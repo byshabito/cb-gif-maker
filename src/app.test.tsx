@@ -150,9 +150,7 @@ describe("App", () => {
   it("renders the preset shell with conversion disabled by default", () => {
     render(<App />);
 
-    expect(
-      screen.getByText(/Convert your clips into CB-ready GIFs/i)
-    ).toBeTruthy();
+    expect(screen.getByText(/Convert your clips into GIFs\./i)).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
     expect(screen.getByText("Video preview")).toBeTruthy();
   });

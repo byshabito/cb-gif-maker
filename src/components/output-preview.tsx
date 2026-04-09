@@ -1,7 +1,7 @@
 import { Download, ImagePlay, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatBytes, formatDuration } from "@/lib/gif-maker";
+import { formatBytes, formatDuration } from "@/lib/gif-it";
 import type { ConversionResult } from "@/types";
 
 type OutputPreviewProps = {

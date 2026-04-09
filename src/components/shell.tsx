@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { useGifMaker } from "@/hooks/use-gif-maker";
+import { useGifIt } from "@/hooks/use-gif-it";
 import {
   ACCEPTED_VIDEO_TYPES,
   formatBytes,
@@ -39,7 +39,7 @@ import {
   formatTrimTimestamp,
   getEngineLabel,
   hasKnownDuration,
-} from "@/lib/gif-maker";
+} from "@/lib/gif-it";
 import { Field, FieldDescription, FieldLabel } from "./ui/field";
 import {
   Dialog,
@@ -51,7 +51,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 
-export function GifMakerShell() {
+export function Shell() {
   const {
     accessibleConvertButtonLabel,
     canConvert,
@@ -68,7 +68,7 @@ export function GifMakerShell() {
     state,
     trimDuration,
     updateTrimRange,
-  } = useGifMaker();
+  } = useGifIt();
   const showProgress =
     state.result === null &&
     (state.isBusy ||
@@ -98,15 +98,15 @@ export function GifMakerShell() {
     <main className="flex h-dvh items-center justify-center overflow-hidden p-4">
       <div>
         <h1>GIF It!</h1>
-        <h2>Convert your clips into CB-ready GIFs</h2>
+        <h2>Convert your clips into GIFs.</h2>
 
         <Drawer direction="right">
           <DrawerTrigger asChild>
-            <Button variant="secondary">How do I upload GIFs on CB?</Button>
+            <Button variant="secondary">How do I upload a clip?</Button>
           </DrawerTrigger>
           <DrawerContent>
             <DrawerHeader>
-              <DrawerTitle>How do I upload GIFs on CB?</DrawerTitle>
+              <DrawerTitle>How do I upload a clip?</DrawerTitle>
             </DrawerHeader>
             <div className="no-scrollbar overflow-y-auto px-4 h-full">
               Just di it

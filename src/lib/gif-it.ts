@@ -12,7 +12,7 @@ export const PREVIEW_LOOP_EPSILON = 0.05;
 
 export type EngineState = "idle" | "loading" | "ready" | "error";
 
-export type GifMakerState = {
+export type GifItState = {
   conversionState:
     | "idle"
     | "loading-engine"
@@ -32,7 +32,7 @@ export type GifMakerState = {
   progress: number | null;
 };
 
-export function createInitialState(): GifMakerState {
+export function createInitialState(): GifItState {
   return {
     conversionState: "idle",
     engineState: "idle",
@@ -110,7 +110,7 @@ export function hasKnownDuration(
   return typeof metadata?.duration === "number" && metadata.duration > 0;
 }
 
-export function getProgressStatusMessage(state: GifMakerState): string {
+export function getProgressStatusMessage(state: GifItState): string {
   if (state.conversionState === "converting") {
     return "Converting clip to GIF...";
   }

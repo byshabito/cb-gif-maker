@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ACCEPTED_VIDEO_TYPES } from "@/lib/gif-maker";
+import { ACCEPTED_VIDEO_TYPES } from "@/lib/gif-it";
 
 type FilePickerProps = {
   disabled: boolean;

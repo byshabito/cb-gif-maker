@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getEngineLabel, type EngineState } from "@/lib/gif-maker";
+import { getEngineLabel, type EngineState } from "@/lib/gif-it";
 
 type ConversionActionsProps = {
   accessibleLabel: string;

@@ -7,7 +7,7 @@ import {
   formatBytes,
   formatDuration,
   hasKnownDuration,
-} from "@/lib/gif-maker";
+} from "@/lib/gif-it";
 import type { InputMetadata, TrimRange } from "@/types";
 
 type InputPreviewProps = {

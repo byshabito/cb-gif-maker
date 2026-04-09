@@ -17,13 +17,13 @@ import {
   hasKnownDuration,
   isSupportedVideo,
   sanitizeError,
-} from "@/lib/gif-maker";
+} from "@/lib/gif-it";
 
 function createConverter() {
   return new BrowserGifConverter();
 }
 
-export function useGifMaker() {
+export function useGifIt() {
   const [state, setState] = useState(createInitialState);
   const stateRef = useRef(state);
   const converterRef = useRef<BrowserGifConverter | null>(null);
