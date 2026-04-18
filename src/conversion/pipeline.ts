@@ -11,7 +11,7 @@ export const TEMP_FILES: Omit<ConversionFiles, "input"> = {
 const VIDEO_EXTENSION_PATTERN = /\.([a-z0-9]+)$/i;
 
 export function computeScaleFilter(width: number, height: number): ScaleFilter {
-  return width * 80 > height * 250 ? "scale=250:-1" : "scale=-1:80";
+  return width * 80 > height * 250 ? "scale=250:-2" : "scale=-2:80";
 }
 
 export function getOutputName(filename: string): string {

@@ -8,11 +8,15 @@ import { getTrimDuration } from "../video/trim";
 
 describe("conversion pipeline helpers", () => {
   it("uses the width-limited scale filter for wide videos", () => {
-    expect(computeScaleFilter(500, 100)).toBe("scale=250:-1");
+    expect(computeScaleFilter(500, 100)).toBe("scale=250:-2");
   });
 
   it("uses the height-limited scale filter for tall videos", () => {
-    expect(computeScaleFilter(100, 500)).toBe("scale=-1:80");
+    expect(computeScaleFilter(100, 500)).toBe("scale=-2:80");
+  });
+
+  it("uses the height-limited even scale filter for portrait inputs", () => {
+    expect(computeScaleFilter(9, 16)).toBe("scale=-2:80");
   });
 
   it("derives gif names from the input filename", () => {
@@ -25,7 +29,7 @@ describe("conversion pipeline helpers", () => {
 
   it("adds trim arguments to the first ffmpeg command", () => {
     expect(
-      buildGifPipeline("input.mp4", "scale=250:-1", {
+      buildGifPipeline("input.mp4", "scale=250:-2", {
         startTime: 1.25,
         endTime: 3.5
       })[0]

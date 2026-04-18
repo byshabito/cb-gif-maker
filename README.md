@@ -1,16 +1,26 @@
-# CB GIF Maker
+# GIF It!
 
-Browser-only GIF conversion for GitHub Pages, powered by `ffmpeg.wasm`.
+Convert your clips to CB-ready GIFs locally.
 
 ## What it does
 
-- Converts local videos to GIFs entirely in the browser.
-- Uses the same pipeline as the original shell script:
+- Converts local videos to GIFs entirely in the browser
+- Conversion pipeline:
+  - trim video
   - `hqdn3d=2.0:1.5:3.0:3.0`
-  - `scale=250:-1` for wide inputs, otherwise `scale=-1:80`
+  - `scale=250:-2` for wide inputs, otherwise `scale=-2:80`
+  - `-2` keeps the auto-computed dimension divisible by 2
   - `palettegen`
   - `paletteuse=dither=bayer:bayer_scale=3`
-- Supports local `.mp4` input.
+- Only supports `.mp4` for now
+
+## Stack
+
+- vite
+- react
+- tailwind css
+- shadcn/ui
+- ffmpeg.wasm
 
 ## Local development
 
@@ -28,17 +38,6 @@ At runtime, those same-origin assets are wrapped into blob URLs before `ffmpeg.l
 npm run build
 npm run preview
 ```
-
-## GitHub Pages
-
-This repo includes `.github/workflows/deploy.yml` for the standard GitHub Pages Actions deployment flow.
-The production URL for this project site is `https://shabito.net/cb-gif-maker/`.
-
-1. Push to `main`.
-2. In the repository settings, open Pages.
-3. Set **Build and deployment** to **GitHub Actions**.
-4. Do not set `shabito.net` as the custom domain for this repository. The domain should stay attached to the `byshabito.github.io` user site so this repo is served from `/cb-gif-maker/`.
-5. If the old PAT-based deployment is no longer used anywhere else, remove the `PAGES_DEPLOY_PAT` repository secret.
 
 ## Browser limitations
 
