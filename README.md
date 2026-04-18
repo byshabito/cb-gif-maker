@@ -8,7 +8,8 @@ Convert your clips to CB-ready GIFs locally.
 - Conversion pipeline:
   - trim video
   - `hqdn3d=2.0:1.5:3.0:3.0`
-  - `scale=250:-1` for wide inputs, otherwise `scale=-1:80`
+  - `scale=250:-2` for wide inputs, otherwise `scale=-2:80`
+  - `-2` keeps the auto-computed dimension divisible by 2
   - `palettegen`
   - `paletteuse=dither=bayer:bayer_scale=3`
 - Only supports `.mp4` for now

@@ -40,7 +40,7 @@ export type FfmpegAssetPaths = {
   wasmURL: string;
 };
 
-export type ScaleFilter = "scale=250:-1" | "scale=-1:80";
+export type ScaleFilter = "scale=250:-2" | "scale=-2:80";
 
 export type ConversionFiles = {
   input: string;
