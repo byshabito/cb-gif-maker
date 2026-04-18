@@ -99,7 +99,7 @@ export function Shell() {
       <div>
         <h1>GIF It!</h1>
         <h2>Convert your clips to CB-ready GIFs locally.</h2>
-
+        {/* 
         <Drawer direction="right">
           <DrawerTrigger asChild>
             <Button variant="secondary">How do I upload a clip?</Button>
@@ -109,13 +109,14 @@ export function Shell() {
               <DrawerTitle>How do I upload a clip?</DrawerTitle>
             </DrawerHeader>
             <div className="no-scrollbar overflow-y-auto px-4 h-full">
-              Just di it
+              Just do it
             </div>
             <DrawerClose asChild>
               <Button variant="ghost">Close</Button>
             </DrawerClose>
           </DrawerContent>
         </Drawer>
+        */}
         <Card className="flex h-full max-h-225 w-full max-w-7xl flex-col">
           <CardContent className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)_16rem] lg:grid-rows-[auto_minmax(0,1fr)_auto]">
             <Field className="lg:col-start-1 lg:row-start-1 lg:row-span-3">
