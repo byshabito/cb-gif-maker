@@ -19,7 +19,7 @@ export const DEFAULT_OUTPUT_BOUNDS: OutputBounds = {
   enforceEvenDimensions: true,
 };
 
-export const DEFAULT_CONVERSION_PRESET_ID: ConversionPresetId = "quality";
+export const DEFAULT_CONVERSION_PRESET_ID: ConversionPresetId = "fast";
 
 export const CONVERSION_PRESETS: Record<ConversionPresetId, ConversionPreset> = {
   fast: {
