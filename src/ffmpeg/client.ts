@@ -1,15 +1,15 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
-import {
-  buildGifPipeline,
-  getConversionFiles
-} from "../conversion/pipeline";
-import { getTrimDuration } from "../video/trim";
+import { BrowserGifArtifactFactory } from "../conversion/artifacts";
+import type { ConversionExecutor, VirtualFileData } from "../conversion/executor";
+import { createGifConversionPlan } from "../conversion/pipeline";
+import { runGifConversion } from "../conversion/run";
 import type {
   ConversionJob,
   ConversionResult,
   FfmpegAssetPaths
 } from "../types";
+import type { FfmpegCommand } from "../conversion/types";
 
 type ProgressHandlers = {
   onLog?: (line: string) => void;
@@ -21,20 +21,76 @@ type ResolvedFfmpegLoadPaths = {
   wasmURL: string;
 };
 
+function parseFfmpegTimestamp(line: string): number | null {
+  const match = line.match(/time=(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)/);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, hours, minutes, seconds] = match;
+
+  return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
+}
+
+class FfmpegConversionExecutor implements ConversionExecutor {
+  constructor(private readonly ffmpeg: FFmpeg) {}
+
+  async writeFile(path: string, data: VirtualFileData): Promise<void> {
+    await this.ffmpeg.writeFile(
+      path,
+      data instanceof Uint8Array ? data : await fetchFile(data)
+    );
+  }
+
+  async exec(command: FfmpegCommand): Promise<void> {
+    const exitCode = await this.ffmpeg.exec([...command]);
+
+    if (exitCode !== 0) {
+      throw new Error(`ffmpeg exited with code ${exitCode}.`);
+    }
+  }
+
+  async readFile(path: string): Promise<Uint8Array> {
+    const data = await this.ffmpeg.readFile(path, "binary");
+
+    return data instanceof Uint8Array
+      ? data
+      : new TextEncoder().encode(data);
+  }
+
+  async deleteFile(path: string): Promise<void> {
+    await this.ffmpeg.deleteFile(path);
+  }
+}
+
 export class BrowserGifConverter {
   private readonly ffmpeg = new FFmpeg();
+  private readonly artifactFactory = new BrowserGifArtifactFactory();
+  private readonly executor = new FfmpegConversionExecutor(this.ffmpeg);
   private loadPromise: Promise<void> | null = null;
   private loaded = false;
   private handlers: ProgressHandlers = {};
   private resolvedPaths: ResolvedFfmpegLoadPaths | null = null;
+  private currentFfmpegProgress = 0;
+  private currentStepDuration: number | null = null;
 
   constructor() {
     this.ffmpeg.on("log", ({ message }) => {
+      const timestamp = parseFfmpegTimestamp(message);
+
+      if (timestamp !== null && this.currentStepDuration) {
+        this.currentFfmpegProgress = Math.max(
+          this.currentFfmpegProgress,
+          Math.min(timestamp / this.currentStepDuration, 1)
+        );
+      }
+
       this.handlers.onLog?.(message);
     });
 
     this.ffmpeg.on("progress", ({ progress }) => {
-      this.handlers.onProgress?.(Math.max(0, Math.min(progress, 1)));
+      this.currentFfmpegProgress = Math.max(0, Math.min(progress, 1));
     });
   }
 
@@ -81,53 +137,33 @@ export class BrowserGifConverter {
   }
 
   async convert(job: ConversionJob): Promise<ConversionResult> {
-    const files = getConversionFiles(job.file.name);
+    this.handlers.onProgress?.(0);
 
-    try {
-      this.handlers.onProgress?.(0);
-      await this.ffmpeg.writeFile(files.input, await fetchFile(job.file));
-
-      for (const command of buildGifPipeline(files.input, job.scaleFilter, job.trimRange)) {
-        const exitCode = await this.ffmpeg.exec(command);
-
-        if (exitCode !== 0) {
-          throw new Error(`ffmpeg exited with code ${exitCode}.`);
-        }
+    const request = {
+      file: job.file,
+      metadata: job.metadata,
+      trimRange: job.trimRange,
+      outputName: job.outputName,
+      presetId: job.presetId,
+    };
+    const plan = createGifConversionPlan(request);
+    const result = await runGifConversion(
+      { request, plan },
+      this.executor,
+      this.artifactFactory,
+      {
+        getStepProgress: () => this.currentFfmpegProgress,
+        resetStepProgress: () => {
+          this.currentFfmpegProgress = 0;
+          this.currentStepDuration = plan.effectiveDuration ?? null;
+        },
+        onProgress: ({ progress }) => {
+          this.handlers.onProgress?.(progress);
+        },
       }
+    );
 
-      const data = await this.ffmpeg.readFile(files.output, "binary");
-      const bytes =
-        data instanceof Uint8Array
-          ? data
-          : new TextEncoder().encode(data);
-      const blobBytes = new Uint8Array(bytes.byteLength);
-      blobBytes.set(bytes);
-      const blob = new Blob([blobBytes], { type: "image/gif" });
-      const objectUrl = URL.createObjectURL(blob);
-      const imageBitmap = await createImageBitmap(blob);
-
-      this.handlers.onProgress?.(1);
-
-      try {
-        return {
-          blob,
-          objectUrl,
-          bytes: blob.size,
-          width: imageBitmap.width,
-          height: imageBitmap.height,
-          duration: job.trimRange
-            ? getTrimDuration(job.trimRange)
-            : job.metadata.duration
-        };
-      } finally {
-        imageBitmap.close();
-      }
-    } finally {
-      await Promise.allSettled(
-        [files.input, files.clean, files.reduced, files.palette, files.output]
-          .map((path) => this.ffmpeg.deleteFile(path))
-      );
-    }
+    return result;
   }
 
   terminate(): void {

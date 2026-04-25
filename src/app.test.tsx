@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import App from "@/App";
 import { BrowserGifConverter } from "@/ffmpeg/client";
 import { readVideoMetadata } from "@/video/metadata";
@@ -67,7 +68,7 @@ function getConverterInstance() {
 }
 
 function getFileInput() {
-  return screen.getByLabelText("Choose video (.mp4)") as HTMLInputElement;
+  return screen.getByLabelText("Choose video") as HTMLInputElement;
 }
 
 function getConvertButton() {
@@ -131,6 +132,26 @@ describe("App", () => {
       value: vi.fn(() => Promise.resolve()),
     });
 
+    Object.defineProperty(HTMLElement.prototype, "hasPointerCapture", {
+      configurable: true,
+      value: vi.fn(() => false),
+    });
+
+    Object.defineProperty(HTMLElement.prototype, "releasePointerCapture", {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    Object.defineProperty(HTMLElement.prototype, "setPointerCapture", {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: vi.fn(),
+    });
+
     class ResizeObserverMock {
       disconnect() {}
       observe() {}
@@ -150,7 +171,11 @@ describe("App", () => {
   it("renders the preset shell with conversion disabled by default", () => {
     render(<App />);
 
-    expect(screen.getByText(/Convert your clips into GIFs\./i)).toBeTruthy();
+    expect(screen.getByText(/Convert your clips to CB-ready GIFs locally\./i)).toBeTruthy();
+    expect(screen.getByLabelText("Conversion preset")).toBeTruthy();
+    expect(screen.getAllByText("Quality").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Balanced")).toBeNull();
+    expect(screen.getByText("15 fps, denoise, best default output.")).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
     expect(screen.getByText("Video preview")).toBeTruthy();
   });
@@ -168,9 +193,43 @@ describe("App", () => {
 
     await selectFile(file);
 
-    expect((await screen.findAllByText("sample.mp4")).length).toBeGreaterThan(0);
-    expect(screen.getByText("Scale to 250px wide")).toBeTruthy();
+    expect(await screen.findByText(/5 B \/ 500 × 100 \/ 2\.00 s/i)).toBeTruthy();
+    expect(screen.getByText(/Scale to 250px wide/i)).toBeTruthy();
     expect(getConvertButton().disabled).toBe(false);
+  });
+
+  it("passes the selected preset to conversion", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    mockedReadVideoMetadata.mockResolvedValueOnce({
+      duration: 2,
+      height: 100,
+      width: 500,
+    });
+    const converter = getConverterInstance();
+    converter.ensureLoaded.mockResolvedValue(undefined);
+    converter.convert.mockResolvedValue({
+      blob: new Blob(["gif"], { type: "image/gif" }),
+      bytes: 2048,
+      duration: 1.5,
+      height: 50,
+      objectUrl: "blob:result-gif",
+      width: 250,
+    });
+    const file = new File(["video"], "sample.mp4", { type: "video/mp4" });
+
+    await selectFile(file);
+    await user.click(screen.getByLabelText("Conversion preset"));
+    await user.click(await screen.findByRole("option", { name: "Fast" }));
+    expect(screen.getByText("12 fps, faster render, lighter detail.")).toBeTruthy();
+
+    fireEvent.click(getConvertButton());
+
+    await waitFor(() => {
+      expect(converter.convert).toHaveBeenCalledWith(
+        expect.objectContaining({ presetId: "fast" })
+      );
+    });
   });
 
   it("shows a validation error for unsupported files", async () => {
@@ -221,6 +280,9 @@ describe("App", () => {
 
     converter.handlers.onProgress?.(0.42);
     expect(await screen.findByText("42% complete")).toBeTruthy();
+    expect(
+      (screen.getByLabelText("Conversion preset") as HTMLButtonElement).disabled
+    ).toBe(true);
 
     ensureLoadedDeferred.resolve();
     await waitFor(() => {
@@ -290,6 +352,6 @@ describe("App", () => {
     expect(screen.getByAltText("Generated GIF preview").getAttribute("src")).toBe(
       "blob:result-gif"
     );
-    expect(screen.getByText("2.00 KB")).toBeTruthy();
+    expect(screen.getByText(/2\.00 KB/)).toBeTruthy();
   });
 });

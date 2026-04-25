@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BrowserGifConverter } from "@/ffmpeg/client";
-import { computeScaleFilter, getOutputName } from "@/conversion/pipeline";
+import { getConversionPreset, getOutputName } from "@/conversion/pipeline";
 import {
   clampTrimEnd,
   clampTrimStart,
   getTrimDuration,
 } from "@/video/trim";
 import { readVideoMetadata } from "@/video/metadata";
-import type { ConversionJob, ConversionResult, TrimRange } from "@/types";
+import type {
+  ConversionJob,
+  ConversionPresetId,
+  ConversionResult,
+  TrimRange,
+} from "@/types";
 import {
   MIN_TRIM_SPAN,
   PREVIEW_LOOP_EPSILON,
@@ -377,6 +382,24 @@ export function useGifIt() {
     }
   };
 
+  const updatePreset = (presetId: ConversionPresetId) => {
+    if (stateRef.current.isBusy) {
+      return;
+    }
+
+    revokeResult();
+
+    setAppState((currentState) => ({
+      ...currentState,
+      conversionState:
+        currentState.conversionState === "done"
+          ? "ready"
+          : currentState.conversionState,
+      result: null,
+      selectedPresetId: presetId,
+    }));
+  };
+
   const runConversion = async () => {
     const currentState = stateRef.current;
 
@@ -385,16 +408,12 @@ export function useGifIt() {
     }
 
     const operationId = ++operationIdRef.current;
-    const scaleFilter = computeScaleFilter(
-      currentState.metadata.width,
-      currentState.metadata.height
-    );
     const job: ConversionJob = {
       file: currentState.file,
       metadata: currentState.metadata,
-      scaleFilter,
       trimRange: currentState.trimRange,
       outputName: getOutputName(currentState.file.name),
+      presetId: currentState.selectedPresetId,
     };
 
     previewRef.current?.pause();
@@ -546,6 +565,7 @@ export function useGifIt() {
     !state.isBusy && state.file && state.metadata
   );
   const trimDuration = state.trimRange ? getTrimDuration(state.trimRange) : 0;
+  const selectedPreset = getConversionPreset(state.selectedPresetId);
 
   return {
     accessibleConvertButtonLabel,
@@ -556,12 +576,14 @@ export function useGifIt() {
     progressStatusMessage,
     selectFile,
     state,
+    selectedPreset,
     trimDuration,
     cancelConversion,
     enforcePreviewBounds,
     runConversion,
     seekPreviewToLoopStart,
     resumePreviewPlayback,
+    updatePreset,
     updateTrimRange,
   };
 }

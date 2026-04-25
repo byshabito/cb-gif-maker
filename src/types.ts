@@ -1,3 +1,5 @@
+import type { ConversionPresetId } from "@/conversion/types";
+
 export type ConversionState =
   | "idle"
   | "loading-engine"
@@ -21,9 +23,9 @@ export type TrimRange = {
 export type ConversionJob = {
   file: File;
   metadata: InputMetadata;
-  scaleFilter: ScaleFilter;
   trimRange: TrimRange | null;
   outputName: string;
+  presetId?: ConversionPresetId;
 };
 
 export type ConversionResult = {
@@ -40,12 +42,16 @@ export type FfmpegAssetPaths = {
   wasmURL: string;
 };
 
-export type ScaleFilter = "scale=250:-2" | "scale=-2:80";
-
-export type ConversionFiles = {
-  input: string;
-  clean: string;
-  reduced: string;
-  palette: string;
-  output: string;
-};
+export type {
+  ConversionAssetNames as ConversionFiles,
+  ConversionPlan,
+  ConversionPreset,
+  ConversionPresetId,
+  ConversionRequest,
+  FfmpegCommand,
+  GifQualityPreset,
+  OutputDimensions,
+  OutputBounds,
+  PlannedConversionJob,
+  ScaleFilter,
+} from "@/conversion/types";

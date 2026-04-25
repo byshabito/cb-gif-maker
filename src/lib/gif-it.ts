@@ -1,4 +1,9 @@
+import {
+  DEFAULT_CONVERSION_PRESET_ID,
+  getConversionPreset,
+} from "@/conversion/pipeline";
 import type {
+  ConversionPresetId,
   ConversionResult,
   FfmpegAssetPaths,
   InputMetadata,
@@ -30,6 +35,7 @@ export type GifItState = {
   errorMessage: string;
   isBusy: boolean;
   progress: number | null;
+  selectedPresetId: ConversionPresetId;
 };
 
 export function createInitialState(): GifItState {
@@ -44,6 +50,7 @@ export function createInitialState(): GifItState {
     errorMessage: "",
     isBusy: false,
     progress: null,
+    selectedPresetId: DEFAULT_CONVERSION_PRESET_ID,
   };
 }
 
@@ -143,5 +150,20 @@ export function getEngineLabel(engineState: EngineState): string {
       return "Engine ready";
     case "error":
       return "Engine failed";
+  }
+}
+
+export function getPresetLabel(presetId: ConversionPresetId): string {
+  return getConversionPreset(presetId).label;
+}
+
+export function getPresetTradeoffSummary(
+  presetId: ConversionPresetId
+): string {
+  switch (presetId) {
+    case "fast":
+      return "12 fps, faster render, lighter detail.";
+    case "quality":
+      return "15 fps, denoise, best default output.";
   }
 }
