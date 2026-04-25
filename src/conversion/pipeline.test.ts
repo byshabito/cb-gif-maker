@@ -14,9 +14,9 @@ import {
 import { getTrimDuration } from "../video/trim";
 
 describe("conversion pipeline helpers", () => {
-  it("uses balanced as the default conversion preset", () => {
-    expect(DEFAULT_CONVERSION_PRESET_ID).toBe("balanced");
-    expect(getConversionPreset().id).toBe("balanced");
+  it("uses quality as the default conversion preset", () => {
+    expect(DEFAULT_CONVERSION_PRESET_ID).toBe("quality");
+    expect(getConversionPreset().id).toBe("quality");
   });
 
   it("uses the width-limited scale filter for wide videos", () => {
@@ -125,26 +125,26 @@ describe("conversion pipeline helpers", () => {
   it("builds a fast video filter chain", () => {
     expect(
       buildVideoFilterChain({
-        scaleFilter: "scale=250:-2:flags=fast_bilinear",
+        scaleFilter: "scale=250:-2:flags=bicubic",
         preset: getConversionPreset("fast"),
       })
-    ).toBe("fps=12,scale=250:-2:flags=fast_bilinear");
+    ).toBe("fps=12,scale=250:-2:flags=bicubic");
   });
 
-  it("builds a quality video filter chain with denoise", () => {
+  it("builds a quality video filter chain with denoise after fps and scale", () => {
     expect(
       buildVideoFilterChain({
-        scaleFilter: "scale=250:-2:flags=lanczos",
+        scaleFilter: "scale=250:-2:flags=bicubic",
         preset: getConversionPreset("quality"),
       })
-    ).toBe("hqdn3d=2.0:1.5:3.0:3.0,fps=20,scale=250:-2:flags=lanczos");
+    ).toBe("fps=15,scale=250:-2:flags=bicubic,hqdn3d=2.0:1.5:3.0:3.0");
   });
 
   it("derives duration from the trim range", () => {
     expect(getTrimDuration({ startTime: 0, endTime: 2.4 })).toBeCloseTo(2.4);
   });
 
-  it("creates a default balanced two-step 250x80 conversion plan", () => {
+  it("creates a default quality two-step 250x80 conversion plan", () => {
     const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
     const plan = createGifConversionPlan({
       file,
@@ -160,12 +160,12 @@ describe("conversion pipeline helpers", () => {
     });
     expect(plan.outputName).toBe("clip.gif");
     expect(plan.outputDimensions).toEqual({ width: 250, height: 50 });
-    expect(plan.preset.id).toBe("balanced");
+    expect(plan.preset.id).toBe("quality");
     expect(plan.effectiveDuration).toBe(4);
     expect(plan.steps.map((step) => step.name)).toEqual(["palette", "encode"]);
   });
 
-  it("creates the full ordered balanced command list", () => {
+  it("creates the full ordered quality command list", () => {
     const plan = createGifConversionPlan({
       file: new File(["video"], "clip.webm", { type: "video/webm" }),
       metadata: { width: 100, height: 500, duration: 6 },
@@ -186,7 +186,7 @@ describe("conversion pipeline helpers", () => {
           "-i",
           "input.webm",
           "-vf",
-          "fps=15,scale=-2:80:flags=bicubic,palettegen=stats_mode=diff",
+          "fps=15,scale=-2:80:flags=bicubic,hqdn3d=2.0:1.5:3.0:3.0,palettegen=stats_mode=diff",
           "output_palette.png",
         ],
         outputs: ["output_palette.png"],
@@ -203,7 +203,7 @@ describe("conversion pipeline helpers", () => {
           "-i",
           "output_palette.png",
           "-lavfi",
-          "fps=15,scale=-2:80:flags=bicubic[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3",
+          "fps=15,scale=-2:80:flags=bicubic,hqdn3d=2.0:1.5:3.0:3.0[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3",
           "output.gif",
         ],
         outputs: ["output.gif"],
@@ -221,7 +221,7 @@ describe("conversion pipeline helpers", () => {
 
     expect(plan.steps).toHaveLength(2);
     expect(plan.steps[0].command).toContain(
-      "fps=12,scale=250:-2:flags=fast_bilinear,palettegen=stats_mode=single"
+      "fps=12,scale=250:-2:flags=bicubic,palettegen=stats_mode=diff"
     );
     expect(plan.steps[0].command.slice(0, 5)).toEqual([
       "-ss",
@@ -232,7 +232,7 @@ describe("conversion pipeline helpers", () => {
     ]);
   });
 
-  it("creates a quality plan with accurate seek, denoise, and fps=20", () => {
+  it("creates a quality plan with fast seek, denoise, and fps=15", () => {
     const plan = createGifConversionPlan({
       file: new File(["video"], "clip.mp4", { type: "video/mp4" }),
       metadata: { width: 500, height: 100 },
@@ -241,18 +241,21 @@ describe("conversion pipeline helpers", () => {
     });
 
     expect(plan.steps).toHaveLength(2);
-    expect(plan.steps[0].command.slice(0, 7)).toEqual([
-      "-i",
-      "input.mp4",
+    expect(plan.steps[0].command.slice(0, 5)).toEqual([
       "-ss",
       "1.000",
       "-t",
       "1.000",
-      "-vf",
+      "-i",
     ]);
     expect(plan.steps[0].command).toContain(
-      "hqdn3d=2.0:1.5:3.0:3.0,fps=20,scale=250:-2:flags=lanczos,palettegen=stats_mode=diff"
+      "fps=15,scale=250:-2:flags=bicubic,hqdn3d=2.0:1.5:3.0:3.0,palettegen=stats_mode=diff"
     );
+  });
+
+  it("uses fast trim seek for every active preset", () => {
+    expect(getConversionPreset("fast").trimSeekMode).toBe("fast");
+    expect(getConversionPreset("quality").trimSeekMode).toBe("fast");
   });
 
   it("does not create intermediate mp4 files", () => {

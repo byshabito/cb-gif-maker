@@ -121,6 +121,7 @@ export class BrowserGifConverter {
       metadata: job.metadata,
       trimRange: job.trimRange,
       outputName: job.outputName,
+      presetId: job.presetId,
     };
     const plan = createGifConversionPlan(request);
     const result = await runGifConversion(

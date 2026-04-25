@@ -19,7 +19,7 @@ export const DEFAULT_OUTPUT_BOUNDS: OutputBounds = {
   enforceEvenDimensions: true,
 };
 
-export const DEFAULT_CONVERSION_PRESET_ID: ConversionPresetId = "balanced";
+export const DEFAULT_CONVERSION_PRESET_ID: ConversionPresetId = "quality";
 
 export const CONVERSION_PRESETS: Record<ConversionPresetId, ConversionPreset> = {
   fast: {
@@ -28,29 +28,19 @@ export const CONVERSION_PRESETS: Record<ConversionPresetId, ConversionPreset> = 
     fps: 12,
     trimSeekMode: "fast",
     denoiseFilter: null,
-    scaleFlags: "fast_bilinear",
-    paletteGenFilter: "palettegen=stats_mode=single",
-    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=4",
-  },
-  balanced: {
-    id: "balanced",
-    label: "Balanced",
-    fps: 15,
-    trimSeekMode: "fast",
-    denoiseFilter: null,
     scaleFlags: "bicubic",
     paletteGenFilter: "palettegen=stats_mode=diff",
-    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=3",
+    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=4",
   },
   quality: {
     id: "quality",
     label: "Quality",
-    fps: 20,
-    trimSeekMode: "accurate",
+    fps: 15,
+    trimSeekMode: "fast",
     denoiseFilter: "hqdn3d=2.0:1.5:3.0:3.0",
-    scaleFlags: "lanczos",
+    scaleFlags: "bicubic",
     paletteGenFilter: "palettegen=stats_mode=diff",
-    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=2",
+    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=3",
   },
 };
 
@@ -142,9 +132,9 @@ export function buildVideoFilterChain({
   preset: ConversionPreset;
 }): string {
   return [
-    preset.denoiseFilter,
     preset.fps === null ? null : `fps=${preset.fps}`,
     scaleFilter,
+    preset.denoiseFilter,
   ].filter((filter): filter is string => Boolean(filter)).join(",");
 }
 
@@ -174,7 +164,7 @@ export function buildGifPipeline(
   trimRange: TrimRange | null = null,
   files: Omit<ConversionAssetNames, "input"> = TEMP_FILES
 ): string[][] {
-  const preset = getConversionPreset("balanced");
+  const preset = getConversionPreset();
   const videoFilterChain = buildVideoFilterChain({ scaleFilter, preset });
 
   return [

@@ -1,3 +1,5 @@
+import type { ConversionPresetId } from "@/conversion/types";
+
 export type ConversionState =
   | "idle"
   | "loading-engine"
@@ -23,6 +25,7 @@ export type ConversionJob = {
   metadata: InputMetadata;
   trimRange: TrimRange | null;
   outputName: string;
+  presetId?: ConversionPresetId;
 };
 
 export type ConversionResult = {

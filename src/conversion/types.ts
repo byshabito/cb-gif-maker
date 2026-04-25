@@ -11,7 +11,7 @@ export type OutputDimensions = {
   height: number;
 };
 
-export type ConversionPresetId = "fast" | "balanced" | "quality";
+export type ConversionPresetId = "fast" | "quality";
 
 export type TrimSeekMode = "fast" | "accurate";
 
@@ -21,7 +21,7 @@ export type ConversionPreset = {
   fps: number | null;
   trimSeekMode: TrimSeekMode;
   denoiseFilter: string | null;
-  scaleFlags: "fast_bilinear" | "bicubic" | "lanczos";
+  scaleFlags: "bicubic" | "lanczos";
   paletteGenFilter: string;
   paletteUseFilter: string;
 };

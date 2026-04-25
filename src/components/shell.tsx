@@ -4,6 +4,7 @@ import {
   Film,
   Scissors,
   Sparkles,
+  SlidersHorizontal,
   Upload,
   WandSparkles,
   X,
@@ -30,8 +31,15 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { getScaleSummary } from "@/conversion/pipeline";
+import { CONVERSION_PRESETS, getScaleSummary } from "@/conversion/pipeline";
 import { useGifIt } from "@/hooks/use-gif-it";
 import {
   ACCEPTED_VIDEO_TYPES,
@@ -39,8 +47,10 @@ import {
   formatDuration,
   formatTrimTimestamp,
   getEngineLabel,
+  getPresetTradeoffSummary,
   hasKnownDuration,
 } from "@/lib/gif-it";
+import type { ConversionPresetId } from "@/types";
 import { Field, FieldLabel } from "./ui/field";
 import {
   Dialog,
@@ -65,9 +75,11 @@ export function Shell() {
     resumePreviewPlayback,
     runConversion,
     seekPreviewToLoopStart,
+    selectedPreset,
     selectFile,
     state,
     trimDuration,
+    updatePreset,
     updateTrimRange,
   } = useGifIt();
   const showProgress =
@@ -137,6 +149,11 @@ export function Shell() {
                     ? `${fileSummary} / ${dimensionSummary} / ${durationSummary} / ${outputRule}`
                     : `Supported: ${ACCEPTED_VIDEO_TYPES}`}
                 </div>
+                <PresetSelect
+                  disabled={state.isBusy}
+                  onPresetChange={updatePreset}
+                  selectedPresetId={selectedPreset.id}
+                />
                 {state.errorMessage ? (
                   <Alert variant="destructive">
                     <AlertCircle />
@@ -316,5 +333,47 @@ export function Shell() {
         </Dialog>
       </div>
     </main>
+  );
+}
+
+function PresetSelect({
+  disabled,
+  selectedPresetId,
+  onPresetChange,
+}: {
+  disabled: boolean;
+  selectedPresetId: ConversionPresetId;
+  onPresetChange: (presetId: ConversionPresetId) => void;
+}) {
+  const presetIds: ConversionPresetId[] = ["fast", "quality"];
+
+  return (
+    <div className="mb-3 space-y-2">
+      <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+        <SlidersHorizontal className="size-3.5" />
+        Preset
+      </div>
+      <Select
+        disabled={disabled}
+        onValueChange={(value) => {
+          onPresetChange(value as ConversionPresetId);
+        }}
+        value={selectedPresetId}
+      >
+        <SelectTrigger aria-label="Conversion preset" className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {presetIds.map((presetId) => (
+            <SelectItem key={presetId} value={presetId}>
+              {CONVERSION_PRESETS[presetId].label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="text-xs text-muted-foreground">
+        {getPresetTradeoffSummary(selectedPresetId)}
+      </p>
+    </div>
   );
 }
