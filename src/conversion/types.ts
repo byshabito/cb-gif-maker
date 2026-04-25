@@ -36,6 +36,20 @@ export type ConversionAssetNames = {
 
 export type FfmpegCommand = readonly string[];
 
+export type ConversionProgressPhase =
+  | "preparing"
+  | "writing-input"
+  | "palette"
+  | "encode"
+  | "reading-output"
+  | "finalizing"
+  | "complete";
+
+export type ConversionProgressUpdate = {
+  progress: number;
+  phase: ConversionProgressPhase;
+};
+
 export type ConversionStepName =
   | "prepare-input"
   | "palette"

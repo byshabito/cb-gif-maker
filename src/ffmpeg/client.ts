@@ -21,6 +21,18 @@ type ResolvedFfmpegLoadPaths = {
   wasmURL: string;
 };
 
+function parseFfmpegTimestamp(line: string): number | null {
+  const match = line.match(/time=(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)/);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, hours, minutes, seconds] = match;
+
+  return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
+}
+
 class FfmpegConversionExecutor implements ConversionExecutor {
   constructor(private readonly ffmpeg: FFmpeg) {}
 
@@ -60,14 +72,25 @@ export class BrowserGifConverter {
   private loaded = false;
   private handlers: ProgressHandlers = {};
   private resolvedPaths: ResolvedFfmpegLoadPaths | null = null;
+  private currentFfmpegProgress = 0;
+  private currentStepDuration: number | null = null;
 
   constructor() {
     this.ffmpeg.on("log", ({ message }) => {
+      const timestamp = parseFfmpegTimestamp(message);
+
+      if (timestamp !== null && this.currentStepDuration) {
+        this.currentFfmpegProgress = Math.max(
+          this.currentFfmpegProgress,
+          Math.min(timestamp / this.currentStepDuration, 1)
+        );
+      }
+
       this.handlers.onLog?.(message);
     });
 
     this.ffmpeg.on("progress", ({ progress }) => {
-      this.handlers.onProgress?.(Math.max(0, Math.min(progress, 1)));
+      this.currentFfmpegProgress = Math.max(0, Math.min(progress, 1));
     });
   }
 
@@ -127,10 +150,18 @@ export class BrowserGifConverter {
     const result = await runGifConversion(
       { request, plan },
       this.executor,
-      this.artifactFactory
+      this.artifactFactory,
+      {
+        getStepProgress: () => this.currentFfmpegProgress,
+        resetStepProgress: () => {
+          this.currentFfmpegProgress = 0;
+          this.currentStepDuration = plan.effectiveDuration ?? null;
+        },
+        onProgress: ({ progress }) => {
+          this.handlers.onProgress?.(progress);
+        },
+      }
     );
-
-    this.handlers.onProgress?.(1);
 
     return result;
   }
