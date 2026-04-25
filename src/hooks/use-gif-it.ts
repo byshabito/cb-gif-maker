@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BrowserGifConverter } from "@/ffmpeg/client";
-import { computeScaleFilter, getOutputName } from "@/conversion/pipeline";
+import { getOutputName } from "@/conversion/pipeline";
 import {
   clampTrimEnd,
   clampTrimStart,
@@ -385,14 +385,9 @@ export function useGifIt() {
     }
 
     const operationId = ++operationIdRef.current;
-    const scaleFilter = computeScaleFilter(
-      currentState.metadata.width,
-      currentState.metadata.height
-    );
     const job: ConversionJob = {
       file: currentState.file,
       metadata: currentState.metadata,
-      scaleFilter,
       trimRange: currentState.trimRange,
       outputName: getOutputName(currentState.file.name),
     };

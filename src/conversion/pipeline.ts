@@ -1,17 +1,100 @@
 import { getTrimDuration } from "../video/trim";
-import type { ConversionFiles, ScaleFilter, TrimRange } from "../types";
+import type {
+  ConversionAssetNames,
+  ConversionPlan,
+  ConversionPreset,
+  ConversionPresetId,
+  ConversionRequest,
+  InputMetadata,
+  OutputBounds,
+  OutputDimensions,
+  ScaleFilter,
+  TrimSeekMode,
+  TrimRange,
+} from "./types";
 
-export const TEMP_FILES: Omit<ConversionFiles, "input"> = {
-  clean: "output_clean.mp4",
-  reduced: "output_reduced.mp4",
+export const DEFAULT_OUTPUT_BOUNDS: OutputBounds = {
+  maxWidth: 250,
+  maxHeight: 80,
+  enforceEvenDimensions: true,
+};
+
+export const DEFAULT_CONVERSION_PRESET_ID: ConversionPresetId = "balanced";
+
+export const CONVERSION_PRESETS: Record<ConversionPresetId, ConversionPreset> = {
+  fast: {
+    id: "fast",
+    label: "Fast",
+    fps: 12,
+    trimSeekMode: "fast",
+    denoiseFilter: null,
+    scaleFlags: "fast_bilinear",
+    paletteGenFilter: "palettegen=stats_mode=single",
+    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=4",
+  },
+  balanced: {
+    id: "balanced",
+    label: "Balanced",
+    fps: 15,
+    trimSeekMode: "fast",
+    denoiseFilter: null,
+    scaleFlags: "bicubic",
+    paletteGenFilter: "palettegen=stats_mode=diff",
+    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=3",
+  },
+  quality: {
+    id: "quality",
+    label: "Quality",
+    fps: 20,
+    trimSeekMode: "accurate",
+    denoiseFilter: "hqdn3d=2.0:1.5:3.0:3.0",
+    scaleFlags: "lanczos",
+    paletteGenFilter: "palettegen=stats_mode=diff",
+    paletteUseFilter: "paletteuse=dither=bayer:bayer_scale=2",
+  },
+};
+
+export const TEMP_FILES: Omit<ConversionAssetNames, "input"> = {
   palette: "output_palette.png",
   output: "output.gif"
 };
 
 const VIDEO_EXTENSION_PATTERN = /\.([a-z0-9]+)$/i;
 
-export function computeScaleFilter(width: number, height: number): ScaleFilter {
-  return width * 80 > height * 250 ? "scale=250:-2" : "scale=-2:80";
+export function computeContainedEvenScale(
+  metadata: InputMetadata,
+  bounds: OutputBounds = DEFAULT_OUTPUT_BOUNDS
+): ScaleFilter {
+  const preset = getConversionPreset();
+
+  return metadata.width * bounds.maxHeight > metadata.height * bounds.maxWidth
+    ? `scale=${bounds.maxWidth}:-2:flags=${preset.scaleFlags}`
+    : `scale=-2:${bounds.maxHeight}:flags=${preset.scaleFlags}`;
+}
+
+export function computeContainedEvenDimensions(
+  metadata: InputMetadata,
+  bounds: OutputBounds = DEFAULT_OUTPUT_BOUNDS
+): OutputDimensions {
+  const widthRatio = bounds.maxWidth / metadata.width;
+  const heightRatio = bounds.maxHeight / metadata.height;
+  const scale = Math.min(widthRatio, heightRatio);
+  const width = Math.max(2, Math.floor(metadata.width * scale / 2) * 2);
+  const height = Math.max(2, Math.floor(metadata.height * scale / 2) * 2);
+
+  return {
+    width: Math.min(width, bounds.maxWidth),
+    height: Math.min(height, bounds.maxHeight),
+  };
+}
+
+export function getScaleSummary(
+  metadata: InputMetadata,
+  bounds: OutputBounds = DEFAULT_OUTPUT_BOUNDS
+): string {
+  return metadata.width * bounds.maxHeight > metadata.height * bounds.maxWidth
+    ? `Scale to ${bounds.maxWidth}px wide`
+    : `Scale to ${bounds.maxHeight}px tall`;
 }
 
 export function getOutputName(filename: string): string {
@@ -25,7 +108,7 @@ export function getInputFileName(filename: string): string {
   return `input.${extension}`;
 }
 
-export function getConversionFiles(filename: string): ConversionFiles {
+export function getConversionFiles(filename: string): ConversionAssetNames {
   return {
     input: getInputFileName(filename),
     ...TEMP_FILES
@@ -36,50 +119,141 @@ function serializeCommandTime(seconds: number): string {
   return Math.max(seconds, 0).toFixed(3);
 }
 
+function serializeTrimRange(trimRange: TrimRange): string[] {
+  return [
+    "-ss",
+    serializeCommandTime(trimRange.startTime),
+    "-t",
+    serializeCommandTime(getTrimDuration(trimRange)),
+  ];
+}
+
+export function getConversionPreset(
+  id: ConversionPresetId = DEFAULT_CONVERSION_PRESET_ID
+): ConversionPreset {
+  return CONVERSION_PRESETS[id];
+}
+
+export function buildVideoFilterChain({
+  scaleFilter,
+  preset,
+}: {
+  scaleFilter: ScaleFilter;
+  preset: ConversionPreset;
+}): string {
+  return [
+    preset.denoiseFilter,
+    preset.fps === null ? null : `fps=${preset.fps}`,
+    scaleFilter,
+  ].filter((filter): filter is string => Boolean(filter)).join(",");
+}
+
+export function buildTrimInputArgs({
+  inputName,
+  seekMode,
+  trimRange,
+}: {
+  inputName: string;
+  seekMode: TrimSeekMode;
+  trimRange: TrimRange | null;
+}): string[] {
+  if (!trimRange) {
+    return ["-i", inputName];
+  }
+
+  const trimArgs = serializeTrimRange(trimRange);
+
+  return seekMode === "fast"
+    ? [...trimArgs, "-i", inputName]
+    : ["-i", inputName, ...trimArgs];
+}
+
 export function buildGifPipeline(
   inputName: string,
   scaleFilter: ScaleFilter,
   trimRange: TrimRange | null = null,
-  files: Omit<ConversionFiles, "input"> = TEMP_FILES
+  files: Omit<ConversionAssetNames, "input"> = TEMP_FILES
 ): string[][] {
+  const preset = getConversionPreset("balanced");
+  const videoFilterChain = buildVideoFilterChain({ scaleFilter, preset });
+
   return [
     [
-      "-i",
-      inputName,
-      ...(trimRange
-        ? [
-            "-ss",
-            serializeCommandTime(trimRange.startTime),
-            "-t",
-            serializeCommandTime(getTrimDuration(trimRange))
-          ]
-        : []),
+      ...buildTrimInputArgs({
+        inputName,
+        trimRange,
+        seekMode: preset.trimSeekMode,
+      }),
       "-vf",
-      "hqdn3d=2.0:1.5:3.0:3.0",
-      files.clean
-    ],
-    [
-      "-i",
-      files.clean,
-      "-vf",
-      scaleFilter,
-      files.reduced
-    ],
-    [
-      "-i",
-      files.reduced,
-      "-vf",
-      "palettegen",
+      `${videoFilterChain},${preset.paletteGenFilter}`,
       files.palette
     ],
     [
-      "-i",
-      files.reduced,
+      ...buildTrimInputArgs({
+        inputName,
+        trimRange,
+        seekMode: preset.trimSeekMode,
+      }),
       "-i",
       files.palette,
       "-lavfi",
-      "paletteuse=dither=bayer:bayer_scale=3",
+      `${videoFilterChain}[x];[x][1:v]${preset.paletteUseFilter}`,
       files.output
     ]
   ];
+}
+
+export function createGifConversionPlan(
+  request: ConversionRequest
+): ConversionPlan {
+  const outputBounds = request.outputBounds ?? DEFAULT_OUTPUT_BOUNDS;
+  const preset = getConversionPreset(request.presetId);
+  const files = getConversionFiles(request.file.name);
+  const scaleFilter = computeContainedEvenScale(request.metadata, outputBounds)
+    .replace(/:flags=[^:]+$/, `:flags=${preset.scaleFlags}`) as ScaleFilter;
+  const videoFilterChain = buildVideoFilterChain({ scaleFilter, preset });
+  const effectiveDuration = request.trimRange
+    ? getTrimDuration(request.trimRange)
+    : request.metadata.duration;
+
+  return {
+    files,
+    outputName: request.outputName ?? getOutputName(request.file.name),
+    outputBounds,
+    outputDimensions: computeContainedEvenDimensions(request.metadata, outputBounds),
+    preset,
+    effectiveDuration,
+    steps: [
+      {
+        name: "palette",
+        command: [
+          ...buildTrimInputArgs({
+            inputName: files.input,
+            trimRange: request.trimRange,
+            seekMode: preset.trimSeekMode,
+          }),
+          "-vf",
+          `${videoFilterChain},${preset.paletteGenFilter}`,
+          files.palette,
+        ],
+        outputs: [files.palette],
+      },
+      {
+        name: "encode",
+        command: [
+          ...buildTrimInputArgs({
+            inputName: files.input,
+            trimRange: request.trimRange,
+            seekMode: preset.trimSeekMode,
+          }),
+          "-i",
+          files.palette,
+          "-lavfi",
+          `${videoFilterChain}[x];[x][1:v]${preset.paletteUseFilter}`,
+          files.output,
+        ],
+        outputs: [files.output],
+      },
+    ],
+  };
 }

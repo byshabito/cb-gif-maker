@@ -67,7 +67,7 @@ function getConverterInstance() {
 }
 
 function getFileInput() {
-  return screen.getByLabelText("Choose video (.mp4)") as HTMLInputElement;
+  return screen.getByLabelText("Choose video") as HTMLInputElement;
 }
 
 function getConvertButton() {
@@ -150,7 +150,7 @@ describe("App", () => {
   it("renders the preset shell with conversion disabled by default", () => {
     render(<App />);
 
-    expect(screen.getByText(/Convert your clips into GIFs\./i)).toBeTruthy();
+    expect(screen.getByText(/Convert your clips to CB-ready GIFs locally\./i)).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
     expect(screen.getByText("Video preview")).toBeTruthy();
   });
@@ -168,8 +168,8 @@ describe("App", () => {
 
     await selectFile(file);
 
-    expect((await screen.findAllByText("sample.mp4")).length).toBeGreaterThan(0);
-    expect(screen.getByText("Scale to 250px wide")).toBeTruthy();
+    expect(await screen.findByText(/5 B \/ 500 × 100 \/ 2\.00 s/i)).toBeTruthy();
+    expect(screen.getByText(/Scale to 250px wide/i)).toBeTruthy();
     expect(getConvertButton().disabled).toBe(false);
   });
 
@@ -290,6 +290,6 @@ describe("App", () => {
     expect(screen.getByAltText("Generated GIF preview").getAttribute("src")).toBe(
       "blob:result-gif"
     );
-    expect(screen.getByText("2.00 KB")).toBeTruthy();
+    expect(screen.getByText(/2\.00 KB/)).toBeTruthy();
   });
 });

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { getScaleSummary } from "@/conversion/pipeline";
 import { useGifIt } from "@/hooks/use-gif-it";
 import {
   ACCEPTED_VIDEO_TYPES,
@@ -40,7 +41,7 @@ import {
   getEngineLabel,
   hasKnownDuration,
 } from "@/lib/gif-it";
-import { Field, FieldDescription, FieldLabel } from "./ui/field";
+import { Field, FieldLabel } from "./ui/field";
 import {
   Dialog,
   DialogClose,
@@ -86,9 +87,7 @@ export function Shell() {
     ? formatDuration(state.metadata.duration)
     : "Duration pending";
   const outputRule = state.metadata
-    ? state.metadata.width * 80 > state.metadata.height * 250
-      ? "Scale to 250px wide"
-      : "Scale to 80px tall"
+    ? getScaleSummary(state.metadata)
     : "Output scale auto-detects after probe";
   const downloadName = state.file
     ? state.file.name.replace(/\.[^/.]+$/, "") + ".gif"
@@ -132,10 +131,10 @@ export function Shell() {
                 }}
                 type="file"
               />
-              <FieldDescription className="flex flex-col justify-between h-full">
+              <div className="flex h-full flex-col justify-between text-left text-xs/relaxed font-normal text-muted-foreground">
                 <div className="mb-2">
                   {state.file
-                    ? `${fileSummary} / ${dimensionSummary} / ${durationSummary}`
+                    ? `${fileSummary} / ${dimensionSummary} / ${durationSummary} / ${outputRule}`
                     : `Supported: ${ACCEPTED_VIDEO_TYPES}`}
                 </div>
                 {state.errorMessage ? (
@@ -174,7 +173,7 @@ export function Shell() {
                     Cancel
                   </Button>
                 </div>
-              </FieldDescription>
+              </div>
             </Field>
 
             <section className="flex min-h-0 flex-col gap-3 lg:col-start-2 lg:row-span-3 lg:col-span-2 lg:row-start-1">
