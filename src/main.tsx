@@ -9,6 +9,8 @@ if (!root) {
   throw new Error("App root not found.");
 }
 
+document.documentElement.classList.add("dark");
+
 createRoot(root).render(
   <StrictMode>
     <App />
