@@ -48,7 +48,7 @@ export function FilePicker({
           </div>
           <Input
             accept={ACCEPTED_VIDEO_TYPES}
-            aria-label="Choose video (.mp4, .mkv, .mov)"
+            aria-label="Choose video (.mp4, .mkv, .mov, .webm)"
             className="sr-only"
             disabled={disabled}
             onChange={(event) => {

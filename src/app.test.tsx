@@ -228,6 +228,23 @@ describe("App", () => {
     expect(getConvertButton().disabled).toBe(false);
   });
 
+  it("loads metadata for a valid webm and enables conversion", async () => {
+    render(<App />);
+    mockedReadVideoMetadata.mockResolvedValueOnce({
+      duration: 4,
+      height: 180,
+      width: 320,
+    });
+    const converter = getConverterInstance();
+    converter.ensureLoaded.mockResolvedValue(undefined);
+    const file = new File(["video"], "sample.webm", { type: "video/webm" });
+
+    await selectFile(file);
+
+    expect(await screen.findByText(/5 B \/ 320 × 180 \/ 4\.00 s/i)).toBeTruthy();
+    expect(getConvertButton().disabled).toBe(false);
+  });
+
   it("falls back to ffprobe metadata for valid mkv files", async () => {
     render(<App />);
     mockedReadVideoMetadata.mockRejectedValueOnce(
@@ -297,7 +314,7 @@ describe("App", () => {
 
     expect(
       await screen.findByText(
-        "Unsupported file type. Use an MP4, MKV, or MOV video."
+        "Unsupported file type. Use an MP4, MKV, MOV, or WebM video."
       )
     ).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
@@ -323,7 +340,7 @@ describe("App", () => {
 
     expect(
       await screen.findByText(
-        "Could not read video metadata. Try a different MP4, MKV, or MOV file."
+        "Could not read video metadata. Try a different MP4, MKV, MOV, or WebM file."
       )
     ).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);

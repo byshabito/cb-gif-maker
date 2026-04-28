@@ -10,15 +10,21 @@ import type {
   TrimRange,
 } from "@/types";
 
-export const SUPPORTED_VIDEO_EXTENSIONS = [".mp4", ".mkv", ".mov"] as const;
+export const SUPPORTED_VIDEO_EXTENSIONS = [
+  ".mp4",
+  ".mkv",
+  ".mov",
+  ".webm",
+] as const;
 export const SUPPORTED_VIDEO_MIME_TYPES = [
   "video/mp4",
   "video/x-matroska",
   "video/quicktime",
+  "video/webm",
 ] as const;
 export const ACCEPTED_VIDEO_TYPES =
-  ".mp4,.mkv,.mov,video/mp4,video/x-matroska,video/quicktime";
-export const SUPPORTED_VIDEO_FORMAT_LABEL = "MP4, MKV, or MOV";
+  ".mp4,.mkv,.mov,.webm,video/mp4,video/x-matroska,video/quicktime,video/webm";
+export const SUPPORTED_VIDEO_FORMAT_LABEL = "MP4, MKV, MOV, or WebM";
 export const TRIM_STEP = 0.1;
 export const MIN_TRIM_SPAN = 0.1;
 export const PREVIEW_LOOP_EPSILON = 0.05;

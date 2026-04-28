@@ -87,6 +87,7 @@ describe("conversion pipeline helpers", () => {
   it("derives gif names from the input filename", () => {
     expect(getOutputName("clip.mkv")).toBe("clip.gif");
     expect(getOutputName("clip.mov")).toBe("clip.gif");
+    expect(getOutputName("clip.webm")).toBe("clip.gif");
   });
 
   it("normalizes the ffmpeg input filename", () => {
