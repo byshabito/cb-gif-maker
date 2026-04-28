@@ -191,6 +191,12 @@ describe("App", () => {
     expect(screen.getByText("12 fps, faster render, lighter detail.")).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
     expect(screen.getByText("Video preview")).toBeTruthy();
+    expect(screen.getByLabelText("Video preview frame").className).toContain(
+      "flex-1"
+    );
+    expect(screen.getByLabelText("Video preview surface").className).toContain(
+      "aspect-video"
+    );
   });
 
   it("loads metadata for a valid mp4 and enables conversion", async () => {

@@ -195,60 +195,68 @@ export function Shell() {
             </Field>
 
             <section className="flex min-h-0 flex-col gap-3 lg:col-start-2 lg:row-span-3 lg:col-span-2 lg:row-start-1">
-              <div className="flex min-h-0 flex-1 overflow-hidden border">
-                {state.inputPreviewUrl ? (
-                  <video
-                    className="h-full w-full object-contain"
-                    muted
-                    onClick={() => {
-                      if (!previewRef.current) return;
-                      if (previewRef.current.paused) {
-                        previewRef.current.play();
-                      } else {
-                        previewRef.current.pause();
-                      }
-                    }}
-                    onEnded={() => {
-                      if (!state.trimRange) {
-                        return;
-                      }
+              <div
+                aria-label="Video preview frame"
+                className="flex min-h-0 flex-1 items-center justify-center overflow-hidden border"
+              >
+                <div
+                  aria-label="Video preview surface"
+                  className="flex aspect-video h-full max-h-full max-w-full overflow-hidden"
+                >
+                  {state.inputPreviewUrl ? (
+                    <video
+                      className="h-full w-full object-contain"
+                      muted
+                      onClick={() => {
+                        if (!previewRef.current) return;
+                        if (previewRef.current.paused) {
+                          previewRef.current.play();
+                        } else {
+                          previewRef.current.pause();
+                        }
+                      }}
+                      onEnded={() => {
+                        if (!state.trimRange) {
+                          return;
+                        }
 
-                      seekPreviewToLoopStart(state.trimRange);
-                      resumePreviewPlayback();
-                    }}
-                    onPlay={() => {
-                      enforcePreviewBounds({ restartPlayback: false });
-                    }}
-                    onSeeking={() => {
-                      if (previewRef.current?.paused) {
-                        return;
-                      }
+                        seekPreviewToLoopStart(state.trimRange);
+                        resumePreviewPlayback();
+                      }}
+                      onPlay={() => {
+                        enforcePreviewBounds({ restartPlayback: false });
+                      }}
+                      onSeeking={() => {
+                        if (previewRef.current?.paused) {
+                          return;
+                        }
 
-                      enforcePreviewBounds({ restartPlayback: true });
-                    }}
-                    onTimeUpdate={() => {
-                      if (previewRef.current?.paused) {
-                        return;
-                      }
+                        enforcePreviewBounds({ restartPlayback: true });
+                      }}
+                      onTimeUpdate={() => {
+                        if (previewRef.current?.paused) {
+                          return;
+                        }
 
-                      enforcePreviewBounds({ restartPlayback: true });
-                    }}
-                    playsInline
-                    preload="metadata"
-                    ref={previewRef}
-                    src={state.inputPreviewUrl}
-                  />
-                ) : (
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-                    <Film className="size-8" />
-                    <div className="space-y-1">
-                      <p className="font-heading text-sm font-medium">
-                        Video preview
-                      </p>
-                      <p className="max-w-xs text-xs">Select a clip.</p>
+                        enforcePreviewBounds({ restartPlayback: true });
+                      }}
+                      playsInline
+                      preload="metadata"
+                      ref={previewRef}
+                      src={state.inputPreviewUrl}
+                    />
+                  ) : (
+                    <div className="flex min-h-130 aspect-video h-full w-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+                      <Film className="size-8" />
+                      <div className="space-y-1">
+                        <p className="font-heading text-sm font-medium">
+                          Video preview
+                        </p>
+                        <p className="max-w-xs text-xs">Select a clip.</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {hasKnownDuration(state.metadata) && state.trimRange ? (
