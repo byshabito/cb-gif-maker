@@ -2,12 +2,13 @@ import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { BrowserGifArtifactFactory } from "../conversion/artifacts";
 import type { ConversionExecutor, VirtualFileData } from "../conversion/executor";
-import { createGifConversionPlan } from "../conversion/pipeline";
+import { createGifConversionPlan, getInputFileName } from "../conversion/pipeline";
 import { runGifConversion } from "../conversion/run";
 import type {
   ConversionJob,
   ConversionResult,
-  FfmpegAssetPaths
+  FfmpegAssetPaths,
+  InputMetadata
 } from "../types";
 import type { FfmpegCommand } from "../conversion/types";
 
@@ -19,6 +20,16 @@ type ProgressHandlers = {
 type ResolvedFfmpegLoadPaths = {
   coreURL: string;
   wasmURL: string;
+};
+
+type FfprobeOutput = {
+  streams?: Array<{
+    height?: number;
+    width?: number;
+  }>;
+  format?: {
+    duration?: number | string;
+  };
 };
 
 function parseFfmpegTimestamp(line: string): number | null {
@@ -62,6 +73,33 @@ class FfmpegConversionExecutor implements ConversionExecutor {
   async deleteFile(path: string): Promise<void> {
     await this.ffmpeg.deleteFile(path);
   }
+}
+
+function parseFfprobeMetadata(data: Uint8Array): InputMetadata {
+  const output = JSON.parse(new TextDecoder().decode(data)) as FfprobeOutput;
+  const stream = output.streams?.[0];
+  const width = stream?.width;
+  const height = stream?.height;
+  const rawDuration = output.format?.duration;
+  const duration =
+    typeof rawDuration === "number"
+      ? rawDuration
+      : typeof rawDuration === "string"
+        ? Number(rawDuration)
+        : undefined;
+
+  if (!width || !height) {
+    throw new Error("Unsupported input for ffmpeg-side probing.");
+  }
+
+  return {
+    width,
+    height,
+    duration:
+      typeof duration === "number" && Number.isFinite(duration) && duration > 0
+        ? duration
+        : undefined,
+  };
 }
 
 export class BrowserGifConverter {
@@ -134,6 +172,40 @@ export class BrowserGifConverter {
   async reload(paths: FfmpegAssetPaths): Promise<void> {
     this.terminate();
     await this.ensureLoaded(paths);
+  }
+
+  async readMetadata(file: File): Promise<InputMetadata> {
+    const inputName = getInputFileName(file.name);
+    const probeOutputName = "metadata.json";
+
+    try {
+      await this.executor.writeFile(inputName, file);
+
+      const exitCode = await this.ffmpeg.ffprobe([
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height:format=duration",
+        "-of",
+        "json",
+        inputName,
+        "-o",
+        probeOutputName,
+      ]);
+
+      if (exitCode !== 0) {
+        throw new Error(`ffprobe exited with code ${exitCode}.`);
+      }
+
+      return parseFfprobeMetadata(await this.executor.readFile(probeOutputName));
+    } finally {
+      await Promise.allSettled([
+        this.executor.deleteFile(inputName),
+        this.executor.deleteFile(probeOutputName),
+      ]);
+    }
   }
 
   async convert(job: ConversionJob): Promise<ConversionResult> {

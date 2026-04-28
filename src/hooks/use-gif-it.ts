@@ -22,6 +22,7 @@ import {
   hasKnownDuration,
   isSupportedVideo,
   sanitizeError,
+  SUPPORTED_VIDEO_FORMAT_LABEL,
 } from "@/lib/gif-it";
 
 function createConverter() {
@@ -238,6 +239,55 @@ export function useGifIt() {
     setAppState(createInitialState());
   };
 
+  const applyMetadata = (
+    operationId: number,
+    file: File,
+    metadata: Awaited<ReturnType<typeof readVideoMetadata>>
+  ) => {
+    if (operationId !== operationIdRef.current) {
+      return false;
+    }
+
+    setAppState((currentState) => ({
+      ...currentState,
+      conversionState: "ready",
+      metadata,
+      trimRange: hasKnownDuration(metadata)
+        ? {
+            startTime: 0,
+            endTime: metadata.duration,
+          }
+        : null,
+      errorMessage: "",
+      file,
+    }));
+    warmEngineInBackground(operationId);
+
+    return true;
+  };
+
+  const readMetadataWithFfmpeg = async (operationId: number, file: File) => {
+    setAppState((currentState) => ({
+      ...currentState,
+      conversionState: "probing",
+      engineState: "loading",
+      errorMessage: "",
+    }));
+
+    await converterRef.current!.ensureLoaded(getFfmpegPaths());
+
+    if (operationId !== operationIdRef.current) {
+      return null;
+    }
+
+    setAppState((currentState) => ({
+      ...currentState,
+      engineState: "ready",
+    }));
+
+    return await converterRef.current!.readMetadata(file);
+  };
+
   const selectFile = async (file: File | null) => {
     if (!file) {
       resetState();
@@ -267,7 +317,7 @@ export function useGifIt() {
         trimRange: null,
         result: null,
         inputPreviewUrl: null,
-        errorMessage: "Unsupported file type. Use an MP4 video.",
+        errorMessage: `Unsupported file type. Use an ${SUPPORTED_VIDEO_FORMAT_LABEL} video.`,
       }));
       return;
     }
@@ -288,37 +338,32 @@ export function useGifIt() {
     try {
       const metadata = await readVideoMetadata(file);
 
-      if (operationId !== operationIdRef.current) {
-        return;
-      }
-
-      setAppState((currentState) => ({
-        ...currentState,
-        conversionState: "ready",
-        metadata,
-        trimRange: hasKnownDuration(metadata)
-          ? {
-              startTime: 0,
-              endTime: metadata.duration,
-            }
-          : null,
-        errorMessage: "",
-        file,
-      }));
-      warmEngineInBackground(operationId);
+      applyMetadata(operationId, file, metadata);
     } catch (error) {
       if (operationId !== operationIdRef.current) {
         return;
       }
 
-      setAppState((currentState) => ({
-        ...currentState,
-        conversionState: "error",
-        engineState: "idle",
-        metadata: null,
-        trimRange: null,
-        errorMessage: sanitizeError(error),
-      }));
+      try {
+        const metadata = await readMetadataWithFfmpeg(operationId, file);
+
+        if (metadata) {
+          applyMetadata(operationId, file, metadata);
+        }
+      } catch {
+        if (operationId !== operationIdRef.current) {
+          return;
+        }
+
+        setAppState((currentState) => ({
+          ...currentState,
+          conversionState: "error",
+          engineState: "idle",
+          metadata: null,
+          trimRange: null,
+          errorMessage: `Could not read video metadata. Try a different ${SUPPORTED_VIDEO_FORMAT_LABEL} file.`,
+        }));
+      }
     }
   };
 

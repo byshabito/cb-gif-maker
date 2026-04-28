@@ -14,9 +14,9 @@ import {
 import { getTrimDuration } from "../video/trim";
 
 describe("conversion pipeline helpers", () => {
-  it("uses quality as the default conversion preset", () => {
-    expect(DEFAULT_CONVERSION_PRESET_ID).toBe("quality");
-    expect(getConversionPreset().id).toBe("quality");
+  it("uses fast as the default conversion preset", () => {
+    expect(DEFAULT_CONVERSION_PRESET_ID).toBe("fast");
+    expect(getConversionPreset().id).toBe("fast");
   });
 
   it("uses the width-limited scale filter for wide videos", () => {
@@ -85,10 +85,13 @@ describe("conversion pipeline helpers", () => {
   });
 
   it("derives gif names from the input filename", () => {
+    expect(getOutputName("clip.mkv")).toBe("clip.gif");
     expect(getOutputName("clip.mov")).toBe("clip.gif");
   });
 
   it("normalizes the ffmpeg input filename", () => {
+    expect(getInputFileName("clip.mkv")).toBe("input.mkv");
+    expect(getInputFileName("clip.mov")).toBe("input.mov");
     expect(getInputFileName("clip.webm")).toBe("input.webm");
   });
 
@@ -144,7 +147,7 @@ describe("conversion pipeline helpers", () => {
     expect(getTrimDuration({ startTime: 0, endTime: 2.4 })).toBeCloseTo(2.4);
   });
 
-  it("creates a default quality two-step 250x80 conversion plan", () => {
+  it("creates a default fast two-step 250x80 conversion plan", () => {
     const file = new File(["video"], "clip.mp4", { type: "video/mp4" });
     const plan = createGifConversionPlan({
       file,
@@ -160,12 +163,12 @@ describe("conversion pipeline helpers", () => {
     });
     expect(plan.outputName).toBe("clip.gif");
     expect(plan.outputDimensions).toEqual({ width: 250, height: 50 });
-    expect(plan.preset.id).toBe("quality");
+    expect(plan.preset.id).toBe("fast");
     expect(plan.effectiveDuration).toBe(4);
     expect(plan.steps.map((step) => step.name)).toEqual(["palette", "encode"]);
   });
 
-  it("creates the full ordered quality command list", () => {
+  it("creates the full ordered fast command list", () => {
     const plan = createGifConversionPlan({
       file: new File(["video"], "clip.webm", { type: "video/webm" }),
       metadata: { width: 100, height: 500, duration: 6 },
@@ -186,7 +189,7 @@ describe("conversion pipeline helpers", () => {
           "-i",
           "input.webm",
           "-vf",
-          "fps=15,scale=-2:80:flags=bicubic,hqdn3d=2.0:1.5:3.0:3.0,palettegen=stats_mode=diff",
+          "fps=12,scale=-2:80:flags=bicubic,palettegen=stats_mode=diff",
           "output_palette.png",
         ],
         outputs: ["output_palette.png"],
@@ -203,7 +206,7 @@ describe("conversion pipeline helpers", () => {
           "-i",
           "output_palette.png",
           "-lavfi",
-          "fps=15,scale=-2:80:flags=bicubic,hqdn3d=2.0:1.5:3.0:3.0[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=3",
+          "fps=12,scale=-2:80:flags=bicubic[x];[x][1:v]paletteuse=dither=bayer:bayer_scale=4",
           "output.gif",
         ],
         outputs: ["output.gif"],

@@ -12,7 +12,7 @@ Convert your clips to CB-ready GIFs locally.
   - `-2` keeps the auto-computed dimension divisible by 2
   - `palettegen`
   - `paletteuse=dither=bayer:bayer_scale=3`
-- Only supports `.mp4` for now
+- Supports `.mp4`, `.mkv`, and `.mov` inputs
 
 ## Stack
 
@@ -43,7 +43,7 @@ npm run preview
 
 - Large files can fail because browser memory is limited.
 - `ffmpeg.wasm` also documents a 2 GB WebAssembly limit.
-- Only MP4 input is supported in this version.
+- MKV and MOV files can convert through `ffmpeg.wasm` even when browser preview or browser metadata probing is unavailable.
 - Processing happens on the client, so slower devices may take a while.
 
 ## Licensing note

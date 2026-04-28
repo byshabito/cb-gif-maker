@@ -25,6 +25,7 @@ type MockConverterInstance = {
     onLog?: (line: string) => void;
     onProgress?: (value: number) => void;
   };
+  readMetadata: ReturnType<typeof vi.fn>;
   setHandlers: ReturnType<typeof vi.fn>;
   terminate: ReturnType<typeof vi.fn>;
 };
@@ -52,6 +53,7 @@ function createMockConverterInstance(): MockConverterInstance {
     convert: vi.fn(),
     ensureLoaded: vi.fn(),
     handlers: {},
+    readMetadata: vi.fn(),
     setHandlers: vi.fn(),
     terminate: vi.fn(),
   };
@@ -90,6 +92,17 @@ async function selectFile(file: File) {
   await waitFor(() => {
     expect(mockedReadVideoMetadata).toHaveBeenCalledWith(file);
   });
+}
+
+function selectUnsupportedFile(file: File) {
+  const input = getFileInput();
+
+  Object.defineProperty(input, "files", {
+    configurable: true,
+    value: [file],
+  });
+
+  fireEvent.change(input);
 }
 
 describe("App", () => {
@@ -173,9 +186,9 @@ describe("App", () => {
 
     expect(screen.getByText(/Convert your clips to CB-ready GIFs locally\./i)).toBeTruthy();
     expect(screen.getByLabelText("Conversion preset")).toBeTruthy();
-    expect(screen.getAllByText("Quality").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Fast").length).toBeGreaterThan(0);
     expect(screen.queryByText("Balanced")).toBeNull();
-    expect(screen.getByText("15 fps, denoise, best default output.")).toBeTruthy();
+    expect(screen.getByText("12 fps, faster render, lighter detail.")).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
     expect(screen.getByText("Video preview")).toBeTruthy();
   });
@@ -196,6 +209,50 @@ describe("App", () => {
     expect(await screen.findByText(/5 B \/ 500 × 100 \/ 2\.00 s/i)).toBeTruthy();
     expect(screen.getByText(/Scale to 250px wide/i)).toBeTruthy();
     expect(getConvertButton().disabled).toBe(false);
+  });
+
+  it("loads metadata for a valid mov and enables conversion", async () => {
+    render(<App />);
+    mockedReadVideoMetadata.mockResolvedValueOnce({
+      duration: 3,
+      height: 120,
+      width: 480,
+    });
+    const converter = getConverterInstance();
+    converter.ensureLoaded.mockResolvedValue(undefined);
+    const file = new File(["video"], "sample.mov", { type: "video/quicktime" });
+
+    await selectFile(file);
+
+    expect(await screen.findByText(/5 B \/ 480 × 120 \/ 3\.00 s/i)).toBeTruthy();
+    expect(getConvertButton().disabled).toBe(false);
+  });
+
+  it("falls back to ffprobe metadata for valid mkv files", async () => {
+    render(<App />);
+    mockedReadVideoMetadata.mockRejectedValueOnce(
+      new Error("Unsupported input for browser-side probing.")
+    );
+    const converter = getConverterInstance();
+    converter.ensureLoaded.mockResolvedValue(undefined);
+    converter.readMetadata.mockResolvedValue({
+      duration: 4,
+      height: 180,
+      width: 320,
+    });
+    const file = new File(["video"], "sample.mkv", {
+      type: "video/x-matroska",
+    });
+
+    await selectFile(file);
+
+    expect(await screen.findByText(/5 B \/ 320 × 180 \/ 4\.00 s/i)).toBeTruthy();
+    expect(getConvertButton().disabled).toBe(false);
+    expect(converter.ensureLoaded).toHaveBeenCalled();
+    expect(converter.readMetadata).toHaveBeenCalledWith(file);
+    expect(converter.ensureLoaded.mock.invocationCallOrder[0]).toBeLessThan(
+      converter.readMetadata.mock.invocationCallOrder[0]
+    );
   });
 
   it("passes the selected preset to conversion", async () => {
@@ -234,18 +291,40 @@ describe("App", () => {
 
   it("shows a validation error for unsupported files", async () => {
     render(<App />);
-    const input = getFileInput();
     const file = new File(["text"], "notes.txt", { type: "text/plain" });
 
-    Object.defineProperty(input, "files", {
-      configurable: true,
-      value: [file],
-    });
-
-    fireEvent.change(input);
+    selectUnsupportedFile(file);
 
     expect(
-      await screen.findByText("Unsupported file type. Use an MP4 video.")
+      await screen.findByText(
+        "Unsupported file type. Use an MP4, MKV, or MOV video."
+      )
+    ).toBeTruthy();
+    expect(getConvertButton().disabled).toBe(true);
+    expect(mockedReadVideoMetadata).not.toHaveBeenCalled();
+    expect(getConverterInstance().readMetadata).not.toHaveBeenCalled();
+  });
+
+  it("blocks supported files when both metadata probes fail", async () => {
+    render(<App />);
+    mockedReadVideoMetadata.mockRejectedValueOnce(
+      new Error("Unsupported input for browser-side probing.")
+    );
+    const converter = getConverterInstance();
+    converter.ensureLoaded.mockResolvedValue(undefined);
+    converter.readMetadata.mockRejectedValueOnce(
+      new Error("Unsupported input for ffmpeg-side probing.")
+    );
+    const file = new File(["video"], "sample.mkv", {
+      type: "video/x-matroska",
+    });
+
+    await selectFile(file);
+
+    expect(
+      await screen.findByText(
+        "Could not read video metadata. Try a different MP4, MKV, or MOV file."
+      )
     ).toBeTruthy();
     expect(getConvertButton().disabled).toBe(true);
   });

@@ -43,6 +43,7 @@ import { CONVERSION_PRESETS, getScaleSummary } from "@/conversion/pipeline";
 import { useGifIt } from "@/hooks/use-gif-it";
 import {
   ACCEPTED_VIDEO_TYPES,
+  SUPPORTED_VIDEO_FORMAT_LABEL,
   formatBytes,
   formatDuration,
   formatTrimTimestamp,
@@ -147,7 +148,7 @@ export function Shell() {
                 <div className="mb-2">
                   {state.file
                     ? `${fileSummary} / ${dimensionSummary} / ${durationSummary} / ${outputRule}`
-                    : `Supported: ${ACCEPTED_VIDEO_TYPES}`}
+                    : `Supported: ${SUPPORTED_VIDEO_FORMAT_LABEL}`}
                 </div>
                 <PresetSelect
                   disabled={state.isBusy}

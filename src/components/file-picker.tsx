@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ACCEPTED_VIDEO_TYPES } from "@/lib/gif-it";
+import { ACCEPTED_VIDEO_TYPES, SUPPORTED_VIDEO_FORMAT_LABEL } from "@/lib/gif-it";
 
 type FilePickerProps = {
   disabled: boolean;
@@ -23,7 +23,7 @@ export function FilePicker({
           <div>
             <CardTitle>Source Clip</CardTitle>
             <CardDescription>
-              Choose a local MP4 and keep everything in the browser.
+              Choose a local {SUPPORTED_VIDEO_FORMAT_LABEL} and keep everything in the browser.
             </CardDescription>
           </div>
           <Button
@@ -43,12 +43,12 @@ export function FilePicker({
         >
           <div className="text-xs text-muted-foreground">
             <span className="line-clamp-2">
-              {fileName ?? "No file selected. MP4 only."}
+              {fileName ?? `No file selected. ${SUPPORTED_VIDEO_FORMAT_LABEL} only.`}
             </span>
           </div>
           <Input
             accept={ACCEPTED_VIDEO_TYPES}
-            aria-label="Choose video (.mp4)"
+            aria-label="Choose video (.mp4, .mkv, .mov)"
             className="sr-only"
             disabled={disabled}
             onChange={(event) => {

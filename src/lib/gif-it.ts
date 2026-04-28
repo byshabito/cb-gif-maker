@@ -10,7 +10,15 @@ import type {
   TrimRange,
 } from "@/types";
 
-export const ACCEPTED_VIDEO_TYPES = ".mp4,video/mp4";
+export const SUPPORTED_VIDEO_EXTENSIONS = [".mp4", ".mkv", ".mov"] as const;
+export const SUPPORTED_VIDEO_MIME_TYPES = [
+  "video/mp4",
+  "video/x-matroska",
+  "video/quicktime",
+] as const;
+export const ACCEPTED_VIDEO_TYPES =
+  ".mp4,.mkv,.mov,video/mp4,video/x-matroska,video/quicktime";
+export const SUPPORTED_VIDEO_FORMAT_LABEL = "MP4, MKV, or MOV";
 export const TRIM_STEP = 0.1;
 export const MIN_TRIM_SPAN = 0.1;
 export const PREVIEW_LOOP_EPSILON = 0.05;
@@ -99,7 +107,15 @@ export function sanitizeError(error: unknown): string {
 
 export function isSupportedVideo(file: File): boolean {
   const lowerName = file.name.toLowerCase();
-  return lowerName.endsWith(".mp4") || file.type === "video/mp4";
+
+  return (
+    SUPPORTED_VIDEO_EXTENSIONS.some((extension) =>
+      lowerName.endsWith(extension)
+    ) ||
+    SUPPORTED_VIDEO_MIME_TYPES.includes(
+      file.type as (typeof SUPPORTED_VIDEO_MIME_TYPES)[number]
+    )
+  );
 }
 
 export function getFfmpegPaths(): FfmpegAssetPaths {
